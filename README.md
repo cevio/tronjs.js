@@ -3,7 +3,7 @@ tronjs.js
 
 #####Tron.jsA Script Loader
 
-Class
+####Class
 
 javascript自封装类对象，用于创建类库的方法。
 参数： object [ json ] # ( 一些初始定义的JSON变量 )
@@ -29,7 +29,7 @@ students.extend('message', function(){
 var eachMan = new students('steven');
 // 运行这个类的message方法
 console.log(eachMan.message()); // out put : 'steven is 20'
-define
+####define
 
 每个模块定义的方法。
 参数： deps [ string | array | undefined ] # ( 一些依赖关系的集合，如果只有一个，直接以字符串形式存在。如果这个变量是个function类型，直接复制给第二个变量。 )
@@ -82,7 +82,7 @@ defind(function( require, exports, module ){
     
     exports.proxy = A; // 或者直接 return A;
 });
-require
+####require
 
 外部和内部的依赖模块加载方法(采用CMD方式加载模块)
 参数： deps [ string | array ] # ( 一些依赖关系的集合，如果只有一个，直接以字符串形式存在。 )
