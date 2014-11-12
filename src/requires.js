@@ -102,7 +102,7 @@
 		// local like :a/b/c
 		else if ( regx_local.test(str) ){ str = str.replace(/^:/, ''); }
 		// base like a/b/c
-		else{ str = httpBase + '/' + str; }
+		else{ str = Library.httpBase + '/' + str; }
 		
 		return str;
 	});
