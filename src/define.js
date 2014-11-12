@@ -26,13 +26,14 @@
 			dependencies = [dependencies];
 		};
 		
+		
 		var m = new module();
 		var d = parseDependencies(factory.toString());
 		
 		if ( d && d.length > 0 ){
 			dependencies = dependencies.concat(d);
 		}
-		
+
 		m.dependencies = dependencies;
 		m.factory = factory;
 		m.amd = amd;
@@ -50,6 +51,7 @@
 		}else{
 			window.__LoaderModule__ = m;
 		}
+
 	};
 	
 	function unique(arr){

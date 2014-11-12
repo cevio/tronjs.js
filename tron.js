@@ -1,4 +1,4 @@
-﻿// JavaScript Document
+// JavaScript Document
 if ( ![].indexOf ){
 	Array.prototype.indexOf = function( value ){
 		var j = -1;
@@ -105,15 +105,6 @@ window.readVariableType = function( object, type ){
 		return this.constructor;
 	};
 })();
-
-
-/*!
- * @overview es6-promise - a tiny implementation of Promises/A+.
- * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
- * @license   Licensed under MIT license
- *            See https://raw.githubusercontent.com/jakearchibald/es6-promise/master/LICENSE
- * @version   2.0.0
- */
 
 (function() {
     "use strict";
@@ -1078,8 +1069,6 @@ window.readVariableType = function( object, type ){
 	};
 }).call(this);
 
-
-// JavaScript Document
 (function(host, module){
 	var _host = host.origin ? host.origin : host.href.split('/').slice(0, 3).join('/'),
 		_base = _host,
@@ -1137,9 +1126,6 @@ window.readVariableType = function( object, type ){
 	}
 );
 
-
-
-// JavaScript Document
 (function( head, isIE, module ){
 	var REQUIRE_RE = /"(?:\\"|[^"])*"|'(?:\\'|[^'])*'|\/\*[\S\s]*?\*\/|\/(?:\\\/|[^/\r\n])+\/(?=[^\/])|\/\/.*|\.\s*require|(?:^|[^$])\brequire\s*\(\s*(["'])(.+?)\1\s*\)/g;
 	var SLASH_RE = /\\\\/g;
@@ -1167,13 +1153,14 @@ window.readVariableType = function( object, type ){
 			dependencies = [dependencies];
 		};
 		
+		
 		var m = new module();
 		var d = parseDependencies(factory.toString());
 		
 		if ( d && d.length > 0 ){
 			dependencies = dependencies.concat(d);
 		}
-		
+
 		m.dependencies = dependencies;
 		m.factory = factory;
 		m.amd = amd;
@@ -1191,6 +1178,7 @@ window.readVariableType = function( object, type ){
 		}else{
 			window.__LoaderModule__ = m;
 		}
+
 	};
 	
 	function unique(arr){
@@ -1246,9 +1234,6 @@ window.readVariableType = function( object, type ){
 	}
 );
 
-
-
-// JavaScript Document
 (function( head ){
 	var requires = new Class();
 
@@ -1331,13 +1316,22 @@ window.readVariableType = function( object, type ){
 			return;
 		};
 		
-		if ( window.modules.maps[str] ){ str = window.modules.maps[str]; };
+		if ( window.modules.maps[str] ){ 
+			str = window.modules.maps[str]; 
+		};
 		
 		// root like /a/b/c
-		if ( regx_root.test(str) ){ str = Library.httpDomain + str; }
-		else if ( regx_http.test(str) ){ str = str; }
+		if ( regx_root.test(str) ){ 
+			str = Library.httpDomain + str; 
+		}
+		// http://
+		else if ( regx_http.test(str) ){ 
+			str = str; 
+		}
 		// parent like ../a/b/c
-		else if ( regx_parent.test(str) ){ str = ResolveParentSelector(dirname + '/' + str); }
+		else if ( regx_parent.test(str) ){
+			str = ResolveParentSelector(dirname + '/' + str); 
+		}
 		// self like ./a/b/c
 		else if ( regx_self.test(str) ){ str = dirname + '/' + str.replace(/^\.\//, ''); }
 		// local like :a/b/c
@@ -1417,7 +1411,7 @@ window.readVariableType = function( object, type ){
 					}
 					
 					window.__LoaderModule__ = null;
-					
+
 					if ( modules.dependencies && modules.dependencies.length > 0 ){
 						if ( !modules.amd ){
 							var k = [];
@@ -1431,18 +1425,17 @@ window.readVariableType = function( object, type ){
 							});
 							
 						}else{
-							var i = 0;
 							var promiseAMD = function(i, modules, callback){
 								if ( i + 1 > modules.dependencies.length ){
 									callback();
 								}else{
-									var dk = new requires(modules.dependencies[i], modules.__filename);
+									var dk = new requires(modules.dependencies[i], modules.__filename);									
 									dk.then(function(){
 										promiseAMD(++i, modules, callback);
 									});
 								}
 							}
-							promiseAMD(i, modules, function(){
+							promiseAMD(0, modules, function(){
 								resolve(that.CompileFactory(modules));
 							});
 						}
@@ -1484,6 +1477,7 @@ window.readVariableType = function( object, type ){
 
 			return Promise.all(k).then(function(){
 				typeof callback === 'function' && callback.apply(this, arguments[0]);
+				return arguments[0];
 			});
 		});
 	}
@@ -1500,29 +1494,36 @@ window.readVariableType = function( object, type ){
 			
 		if ( index > -1 ){
 			index--;
+			
 			if ( index < 0 ){
 				index = 0;
 				parentArrays.splice(0, 1);
-			}else{
+			}
+			else{
 				parentArrays.splice(index, 2);
 			}
+			
 			var x = parentArrays.join("/");
-			if ( !Library.regx_http.test(x) ){
-				x = Library.host + "/" + x;
+			
+			if ( !regx_http.test(x) ){
+				x = Library.httpDomain + "/" + x;
 			}
+			
 			return ResolveParentSelector(x);
 		}else{
+			
 			var b = parentArrays.join("/");
+			
 			if ( !regx_http.test(b) ){
 				b = Library.httpDomain + "/" + b;
 			}
+			
 			return b;
+			
 		}
 	};
 	
 })( head = document.head || document.getElementsByTagName('head')[0] || document.documentElement );
-
-
 
 (function () {
     'use strict';

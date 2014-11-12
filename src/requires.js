@@ -81,13 +81,22 @@
 			return;
 		};
 		
-		if ( window.modules.maps[str] ){ str = window.modules.maps[str]; };
+		if ( window.modules.maps[str] ){ 
+			str = window.modules.maps[str]; 
+		};
 		
 		// root like /a/b/c
-		if ( regx_root.test(str) ){ str = Library.httpDomain + str; }
-		else if ( regx_http.test(str) ){ str = str; }
+		if ( regx_root.test(str) ){ 
+			str = Library.httpDomain + str; 
+		}
+		// http://
+		else if ( regx_http.test(str) ){ 
+			str = str; 
+		}
 		// parent like ../a/b/c
-		else if ( regx_parent.test(str) ){ str = ResolveParentSelector(dirname + '/' + str); }
+		else if ( regx_parent.test(str) ){
+			str = ResolveParentSelector(dirname + '/' + str); 
+		}
 		// self like ./a/b/c
 		else if ( regx_self.test(str) ){ str = dirname + '/' + str.replace(/^\.\//, ''); }
 		// local like :a/b/c
@@ -167,7 +176,7 @@
 					}
 					
 					window.__LoaderModule__ = null;
-					
+
 					if ( modules.dependencies && modules.dependencies.length > 0 ){
 						if ( !modules.amd ){
 							var k = [];
@@ -181,18 +190,17 @@
 							});
 							
 						}else{
-							var i = 0;
 							var promiseAMD = function(i, modules, callback){
 								if ( i + 1 > modules.dependencies.length ){
 									callback();
 								}else{
-									var dk = new requires(modules.dependencies[i], modules.__filename);
+									var dk = new requires(modules.dependencies[i], modules.__filename);									
 									dk.then(function(){
 										promiseAMD(++i, modules, callback);
 									});
 								}
 							}
-							promiseAMD(i, modules, function(){
+							promiseAMD(0, modules, function(){
 								resolve(that.CompileFactory(modules));
 							});
 						}
@@ -234,6 +242,7 @@
 
 			return Promise.all(k).then(function(){
 				typeof callback === 'function' && callback.apply(this, arguments[0]);
+				return arguments[0];
 			});
 		});
 	}
@@ -250,23 +259,32 @@
 			
 		if ( index > -1 ){
 			index--;
+			
 			if ( index < 0 ){
 				index = 0;
 				parentArrays.splice(0, 1);
-			}else{
+			}
+			else{
 				parentArrays.splice(index, 2);
 			}
+			
 			var x = parentArrays.join("/");
-			if ( !Library.regx_http.test(x) ){
-				x = Library.host + "/" + x;
+			
+			if ( !regx_http.test(x) ){
+				x = Library.httpDomain + "/" + x;
 			}
+			
 			return ResolveParentSelector(x);
 		}else{
+			
 			var b = parentArrays.join("/");
+			
 			if ( !regx_http.test(b) ){
 				b = Library.httpDomain + "/" + b;
 			}
+			
 			return b;
+			
 		}
 	};
 	
