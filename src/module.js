@@ -13,7 +13,7 @@
 	});
 	
 		// 设置加载器映射
-	library.add('onMap', function( selector ){
+	library.add('onMap', function( str, selector ){
 		window.modules.maps[str] = selector;
 		return this;
 	});
