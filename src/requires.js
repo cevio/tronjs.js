@@ -119,7 +119,7 @@
 		return str;
 	});
 	
-	requires.add('CompileFactory', function(modules, node){
+	requires.add('CompileFactory', function(modules, node, depicals){
 		var factory = modules.factory,
 			that = this,
 			inRequire = function(selector){	
@@ -127,7 +127,11 @@
 				return window.modules.exports[selector].module.exports;
 			};
 	
-		var ret = factory ? factory( inRequire, modules.exports, modules ) : null;
+		var ret = null;
+		try{
+			depicals = depicals.concat([inRequire, modules.exports, modules]);
+			ret = factory ? factory.apply( this, depicals ) : null;
+		}catch(e){ throw e.message; }
 
 		window.modules.exports[modules.__filename].module = modules;
 		window.modules.exports[modules.__filename].status = false;
@@ -189,28 +193,31 @@
 								k.push(new requires(modules.dependencies[i], modules.__filename));
 							}
 							
-							Promise.all(k).then(function(){			
-								resolve(that.CompileFactory(modules, node));
+							Promise.all(k).then(function(){
+								var argcs = Array.prototype.slice.call(arguments, 0);	
+								resolve(that.CompileFactory(modules, node, argcs));
 							});
 							
 						}else{
+							var argcs = [];
 							var promiseAMD = function(i, modules, callback){
 								if ( i + 1 > modules.dependencies.length ){
 									callback();
 								}else{
 									var dk = new requires(modules.dependencies[i], modules.__filename);									
-									dk.then(function(){
+									dk.then(function(value){
+										argcs.push(value);
 										promiseAMD(++i, modules, callback);
 									});
 								}
 							}
 							promiseAMD(0, modules, function(){
-								resolve(that.CompileFactory(modules, node));
+								resolve(that.CompileFactory(modules, node, argcs));
 							});
 						}
 						
 					}else{
-						resolve(that.CompileFactory(modules, node));
+						resolve(that.CompileFactory(modules, node, []));
 					}
 				});
 			});

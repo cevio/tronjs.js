@@ -54,6 +54,8 @@
 
 	};
 	
+	window.define.amd = true;
+	
 	function unique(arr){
 		var obj = {};
 		var ret = [];
