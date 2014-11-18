@@ -138,6 +138,10 @@
 		
 		if ( ret ){
 			window.modules.exports[modules.__filename].module.exports = ret;
+		}else{
+			if ( getEmpty(window.modules.exports[modules.__filename].module.exports) && depicals.length > 3 ){
+				window.modules.exports[modules.__filename].module.exports = depicals.slice(0, -3);
+			}
 		};
 		
 		if ( /\.js$/.test(modules.__filename) ){
@@ -194,7 +198,7 @@
 							}
 							
 							Promise.all(k).then(function(){
-								var argcs = Array.prototype.slice.call(arguments, 0);	
+								var argcs = Array.prototype.slice.call(arguments[0], 0);	
 								resolve(that.CompileFactory(modules, node, argcs));
 							});
 							
@@ -206,7 +210,7 @@
 								}else{
 									var dk = new requires(modules.dependencies[i], modules.__filename);									
 									dk.then(function(value){
-										argcs.push(value);
+										argcs.push(value[0]);
 										promiseAMD(++i, modules, callback);
 									});
 								}
@@ -298,5 +302,14 @@
 			
 		}
 	};
+	
+	function getEmpty(json){
+		var j = 0;
+		for ( var i in json ){
+			j++;
+		}
+		
+		return j === 0;
+	}
 	
 })( head = document.head || document.getElementsByTagName('head')[0] || document.documentElement );
