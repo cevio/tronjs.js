@@ -131,7 +131,7 @@
 		try{
 			depicals = depicals.concat([inRequire, modules.exports, modules]);
 			ret = factory ? factory.apply( this, depicals ) : null;
-		}catch(e){ throw e.message; }
+		}catch(e){}
 
 		window.modules.exports[modules.__filename].module = modules;
 		window.modules.exports[modules.__filename].status = false;
