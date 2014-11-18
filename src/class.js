@@ -98,7 +98,11 @@ window.readVariableType = function( object, type ){
 			if ( argc[0] && argc[0].__constructor__ && argc[0].__constructor__ === 'ECM.CLASS' ){
 				this.constructor.extend(argc[0]);
 			}else{
-				this.constructor.add(argc[0]);
+				if ( typeof argc[0] === 'function' ){
+					this.constructor.add('initialize', argc[0]);
+				}else{
+					this.constructor.add(argc[0]);
+				}
 			}
 		}
 		

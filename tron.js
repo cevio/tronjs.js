@@ -1,4 +1,10 @@
-// JavaScript Document
+/*!
+ * @overview Global TronJS Scripts Loader - a tiny implementation of Promises/A+ and CommonJS contributors.
+ * @copyright Copyright (c) 2014 evio studio and PJBlog5 project
+ * @license   Licensed under MIT license
+ *            See https://github.com/cevio/tronjs.js
+ * @version   6.1.223
+ */
 if ( ![].indexOf ){
 	Array.prototype.indexOf = function( value ){
 		var j = -1;
@@ -98,7 +104,11 @@ window.readVariableType = function( object, type ){
 			if ( argc[0] && argc[0].__constructor__ && argc[0].__constructor__ === 'ECM.CLASS' ){
 				this.constructor.extend(argc[0]);
 			}else{
-				this.constructor.add(argc[0]);
+				if ( typeof argc[0] === 'function' ){
+					this.constructor.add('initialize', argc[0]);
+				}else{
+					this.constructor.add(argc[0]);
+				}
 			}
 		}
 		
@@ -1069,6 +1079,7 @@ window.readVariableType = function( object, type ){
 	};
 }).call(this);
 
+// JavaScript Document
 (function(host, module){
 	var _host = host.origin ? host.origin : host.href.split('/').slice(0, 3).join('/'),
 		_base = _host,
@@ -1125,7 +1136,7 @@ window.readVariableType = function( object, type ){
 		this.Promise = Promise.resolve();
 	}
 );
-
+// JavaScript Document
 (function( head, isIE, module ){
 	var REQUIRE_RE = /"(?:\\"|[^"])*"|'(?:\\'|[^'])*'|\/\*[\S\s]*?\*\/|\/(?:\\\/|[^/\r\n])+\/(?=[^\/])|\/\/.*|\.\s*require|(?:^|[^$])\brequire\s*\(\s*(["'])(.+?)\1\s*\)/g;
 	var SLASH_RE = /\\\\/g;
@@ -1233,7 +1244,7 @@ window.readVariableType = function( object, type ){
 		this.amd			= false;
 	}
 );
-
+// JavaScript Document
 (function( head ){
 	var requires = new Class();
 
@@ -1354,7 +1365,7 @@ window.readVariableType = function( object, type ){
 		return str;
 	});
 	
-	requires.add('CompileFactory', function(modules){
+	requires.add('CompileFactory', function(modules, node){
 		var factory = modules.factory,
 			that = this,
 			inRequire = function(selector){	
@@ -1369,6 +1380,10 @@ window.readVariableType = function( object, type ){
 		
 		if ( ret ){
 			window.modules.exports[modules.__filename].module.exports = ret;
+		};
+		
+		if ( /\.js$/.test(modules.__filename) ){
+			node.parentNode.removeChild(node);
 		};
 
 		return window.modules.exports[modules.__filename].module.exports;
@@ -1421,7 +1436,7 @@ window.readVariableType = function( object, type ){
 							}
 							
 							Promise.all(k).then(function(){			
-								resolve(that.CompileFactory(modules));
+								resolve(that.CompileFactory(modules, node));
 							});
 							
 						}else{
@@ -1436,12 +1451,12 @@ window.readVariableType = function( object, type ){
 								}
 							}
 							promiseAMD(0, modules, function(){
-								resolve(that.CompileFactory(modules));
+								resolve(that.CompileFactory(modules, node));
 							});
 						}
 						
 					}else{
-						resolve(that.CompileFactory(modules));
+						resolve(that.CompileFactory(modules, node));
 					}
 				});
 			});
@@ -1524,325 +1539,298 @@ window.readVariableType = function( object, type ){
 	};
 	
 })( head = document.head || document.getElementsByTagName('head')[0] || document.documentElement );
-
-(function () {
-    'use strict';
-
-    function f(n) {
-        // Format integers to have at least two digits.
-        return n < 10 ? '0' + n : n;
-    }
-
-    if (typeof Date.prototype.toJSON !== 'function') {
-
-        Date.prototype.toJSON = function (key) {
-
-            return isFinite(this.valueOf())
-                ? this.getUTCFullYear()     + '-' +
-                    f(this.getUTCMonth() + 1) + '-' +
-                    f(this.getUTCDate())      + 'T' +
-                    f(this.getUTCHours())     + ':' +
-                    f(this.getUTCMinutes())   + ':' +
-                    f(this.getUTCSeconds())   + 'Z'
-                : null;
-        };
-
-        String.prototype.toJSON      =
-            Number.prototype.toJSON  =
-            Boolean.prototype.toJSON = function (key) {
-                return this.valueOf();
-            };
-    }
-
-    var cx = /[\u0000\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
-        escapable = /[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
-        gap,
-        indent,
-        meta = {    // table of character substitutions
-            '\b': '\\b',
-            '\t': '\\t',
-            '\n': '\\n',
-            '\f': '\\f',
-            '\r': '\\r',
-            '"' : '\\"',
-            '\\': '\\\\'
-        },
-        rep;
-
-
-    function quote(string) {
-
-// If the string contains no control characters, no quote characters, and no
-// backslash characters, then we can safely slap some quotes around it.
-// Otherwise we must also replace the offending characters with safe escape
-// sequences.
-
-        escapable.lastIndex = 0;
-        return escapable.test(string) ? '"' + string.replace(escapable, function (a) {
-            var c = meta[a];
-            return typeof c === 'string'
-                ? c
-                : '\\u' + ('0000' + a.charCodeAt(0).toString(16)).slice(-4);
-        }) + '"' : '"' + string + '"';
-    }
-
-
-    function str(key, holder) {
-
-// Produce a string from holder[key].
-
-        var i,          // The loop counter.
-            k,          // The member key.
-            v,          // The member value.
-            length,
-            mind = gap,
-            partial,
-            value = holder[key];
-
-// If the value has a toJSON method, call it to obtain a replacement value.
-
-        if (value && typeof value === 'object' &&
-                typeof value.toJSON === 'function') {
-            value = value.toJSON(key);
-        }
-
-// If we were called with a replacer function, then call the replacer to
-// obtain a replacement value.
-
-        if (typeof rep === 'function') {
-            value = rep.call(holder, key, value);
-        }
-
-// What happens next depends on the value's type.
-
-        switch (typeof value) {
-        case 'string':
-            return quote(value);
-
-        case 'number':
-
-// JSON numbers must be finite. Encode non-finite numbers as null.
-
-            return isFinite(value) ? String(value) : 'null';
-
-        case 'boolean':
-        case 'null':
-
-// If the value is a boolean or null, convert it to a string. Note:
-// typeof null does not produce 'null'. The case is included here in
-// the remote chance that this gets fixed someday.
-
-            return String(value);
-
-// If the type is 'object', we might be dealing with an object or an array or
-// null.
-
-        case 'object':
-
-// Due to a specification blunder in ECMAScript, typeof null is 'object',
-// so watch out for that case.
-
-            if (!value) {
-                return 'null';
-            }
-
-// Make an array to hold the partial results of stringifying this object value.
-
-            gap += indent;
-            partial = [];
-
-// Is the value an array?
-
-            if (Object.prototype.toString.apply(value) === '[object Array]') {
-
-// The value is an array. Stringify every element. Use null as a placeholder
-// for non-JSON values.
-
-                length = value.length;
-                for (i = 0; i < length; i += 1) {
-                    partial[i] = str(i, value) || 'null';
-                }
-
-// Join all of the elements together, separated with commas, and wrap them in
-// brackets.
-
-                v = partial.length === 0
-                    ? '[]'
-                    : gap
-                    ? '[\n' + gap + partial.join(',\n' + gap) + '\n' + mind + ']'
-                    : '[' + partial.join(',') + ']';
-                gap = mind;
-                return v;
-            }
-
-// If the replacer is an array, use it to select the members to be stringified.
-
-            if (rep && typeof rep === 'object') {
-                length = rep.length;
-                for (i = 0; i < length; i += 1) {
-                    if (typeof rep[i] === 'string') {
-                        k = rep[i];
-                        v = str(k, value);
-                        if (v) {
-                            partial.push(quote(k) + (gap ? ': ' : ':') + v);
-                        }
-                    }
-                }
-            } else {
-
-// Otherwise, iterate through all of the keys in the object.
-
-                for (k in value) {
-                    if (Object.prototype.hasOwnProperty.call(value, k)) {
-                        v = str(k, value);
-                        if (v) {
-                            partial.push(quote(k) + (gap ? ': ' : ':') + v);
-                        }
-                    }
-                }
-            }
-
-// Join all of the member texts together, separated with commas,
-// and wrap them in braces.
-
-            v = partial.length === 0
-                ? '{}'
-                : gap
-                ? '{\n' + gap + partial.join(',\n' + gap) + '\n' + mind + '}'
-                : '{' + partial.join(',') + '}';
-            gap = mind;
-            return v;
-        }
-    }
-
-// If the JSON object does not yet have a stringify method, give it one.
-
-    if (typeof JSON.stringify !== 'function') {
-        JSON.stringify = function (value, replacer, space) {
-
-// The stringify method takes a value and an optional replacer, and an optional
-// space parameter, and returns a JSON text. The replacer can be a function
-// that can replace values, or an array of strings that will select the keys.
-// A default replacer method can be provided. Use of the space parameter can
-// produce text that is more easily readable.
-
-            var i;
-            gap = '';
-            indent = '';
-
-// If the space parameter is a number, make an indent string containing that
-// many spaces.
-
-            if (typeof space === 'number') {
-                for (i = 0; i < space; i += 1) {
-                    indent += ' ';
-                }
-
-// If the space parameter is a string, it will be used as the indent string.
-
-            } else if (typeof space === 'string') {
-                indent = space;
-            }
-
-// If there is a replacer, it must be a function or an array.
-// Otherwise, throw an error.
-
-            rep = replacer;
-            if (replacer && typeof replacer !== 'function' &&
-                    (typeof replacer !== 'object' ||
-                    typeof replacer.length !== 'number')) {
-                throw new Error('JSON.stringify');
-            }
-
-// Make a fake root object containing our value under the key of ''.
-// Return the result of stringifying the value.
-
-            return str('', {'': value});
-        };
-    }
-
-
-// If the JSON object does not yet have a parse method, give it one.
-
-    if (typeof JSON.parse !== 'function') {
-        JSON.parse = function (text, reviver) {
-
-// The parse method takes a text and an optional reviver function, and returns
-// a JavaScript value if the text is a valid JSON text.
-
-            var j;
-
-            function walk(holder, key) {
-
-// The walk method is used to recursively walk the resulting structure so
-// that modifications can be made.
-
-                var k, v, value = holder[key];
-                if (value && typeof value === 'object') {
-                    for (k in value) {
-                        if (Object.prototype.hasOwnProperty.call(value, k)) {
-                            v = walk(value, k);
-                            if (v !== undefined) {
-                                value[k] = v;
-                            } else {
-                                delete value[k];
-                            }
-                        }
-                    }
-                }
-                return reviver.call(holder, key, value);
-            }
-
-
-// Parsing happens in four stages. In the first stage, we replace certain
-// Unicode characters with escape sequences. JavaScript handles many characters
-// incorrectly, either silently deleting them, or treating them as line endings.
-
-            text = String(text);
-            cx.lastIndex = 0;
-            if (cx.test(text)) {
-                text = text.replace(cx, function (a) {
-                    return '\\u' +
-                        ('0000' + a.charCodeAt(0).toString(16)).slice(-4);
-                });
-            }
-
-// In the second stage, we run the text against regular expressions that look
-// for non-JSON patterns. We are especially concerned with '()' and 'new'
-// because they can cause invocation, and '=' because it can cause mutation.
-// But just to be safe, we want to reject all unexpected forms.
-
-// We split the second stage into 4 regexp operations in order to work around
-// crippling inefficiencies in IE's and Safari's regexp engines. First we
-// replace the JSON backslash pairs with '@' (a non-JSON character). Second, we
-// replace all simple value tokens with ']' characters. Third, we delete all
-// open brackets that follow a colon or comma or that begin the text. Finally,
-// we look to see that the remaining characters are only whitespace or ']' or
-// ',' or ':' or '{' or '}'. If that is so, then the text is safe for eval.
-
-            if (/^[\],:{}\s]*$/
-                    .test(text.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g, '@')
-                        .replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']')
-                        .replace(/(?:^|:|,)(?:\s*\[)+/g, ''))) {
-
-// In the third stage we use the eval function to compile the text into a
-// JavaScript structure. The '{' operator is subject to a syntactic ambiguity
-// in JavaScript: it can begin a block or an object literal. We wrap the text
-// in parens to eliminate the ambiguity.
-
-                j = eval('(' + text + ')');
-
-// In the optional fourth stage, we recursively walk the new structure, passing
-// each name/value pair to a reviver function for possible transformation.
-
-                return typeof reviver === 'function'
-                    ? walk({'': j}, '')
-                    : j;
-            }
-
-// If the text is not JSON parseable, then a SyntaxError is thrown.
-
-            throw new SyntaxError('JSON.parse');
-        };
-    }
-}());
+// JavaScript Document
+(function( head ){
+	var requires = new Class();
+
+	var regx_root = /^\/.+/,
+		regx_http = /^http\:\/\//i,
+		regx_parent = /^\.\.\/.+/,
+		regx_self = /^\.\/.+/,
+		regx_local = /^\:.+/;
+	
+	requires.add('initialize', function(selector, filename){
+		this.__filename = filename;
+		this.__dirname = this.__filename.split('/').slice(0, -1).join('/');
+		this.__loadModule = selector;
+		return this.compile();
+	});
+	
+	requires.add('loadscript', function(url){
+		return new Promise(function( resolve ){
+			var node = document.createElement("script");
+			node.onload = node.onerror = node.onreadystatechange = function(){
+				if ( /loaded|complete|undefined/i.test(node.readyState) ) {
+					node.onload = node.onerror = node.onreadystatechange = null;
+					resolve(node);
+				}
+			}
+			node.async = true;
+			node.src = url;
+			head.insertBefore( node, head.firstChild );
+		});
+	});
+	
+	requires.add('loadcss', function(href, before, media){
+		return new Promise(function(resolve){
+			var ss = window.document.createElement( "link" );
+			var ref = before || window.document.getElementsByTagName( "script" )[ 0 ];
+			var sheets = window.document.styleSheets;
+				ss.rel = "stylesheet";
+				ss.href = href;
+				ss.media = "only x";
+				ref.parentNode.insertBefore( ss, ref );
+			
+			var dtime = new Date().getTime();
+			function toggleMedia(){
+				if ( new Date().getTime() - dtime > 30000 ){
+					reject(ss);
+					return;
+				};
+				var defined;
+				for( var i = 0; i < sheets.length; i++ ){
+					if( sheets[ i ].href && sheets[ i ].href.indexOf( href ) > -1 ){
+						defined = true;
+					}
+				}
+				if( defined ){
+					ss.media = media || "all";
+					resolve(ss);
+				}
+				else {
+					setTimeout( toggleMedia );
+				}
+			}
+			
+			toggleMedia();
+		});
+	});
+	
+	requires.add('request', function(url){
+		if ( /\.css(?:\?|$)/i.test(url) ){
+			return this.loadcss(url);
+		}else{
+			return this.loadscript(url);
+		}
+	});
+	
+	requires.add('contrast', function(str, dirname){
+		dirname = dirname || this.__dirname;
+		
+		if ( str === undefined || typeof str !== 'string' ){
+			throw 'Tronjs Error Message: Error Selector String. It Must Be Exist. Now It Is Undefined.';
+			return;
+		};
+		
+		if ( window.modules.maps[str] ){ 
+			str = window.modules.maps[str]; 
+		};
+		
+		// root like /a/b/c
+		if ( regx_root.test(str) ){ 
+			str = Library.httpDomain + str; 
+		}
+		// http://
+		else if ( regx_http.test(str) ){ 
+			str = str; 
+		}
+		// parent like ../a/b/c
+		else if ( regx_parent.test(str) ){
+			str = ResolveParentSelector(dirname + '/' + str); 
+		}
+		// self like ./a/b/c
+		else if ( regx_self.test(str) ){ str = dirname + '/' + str.replace(/^\.\//, ''); }
+		// local like :a/b/c
+		else if ( regx_local.test(str) ){ str = str.replace(/^:/, ''); }
+		// base like a/b/c
+		else{ str = Library.httpBase + '/' + str; }
+		
+		return str;
+	});
+	
+	requires.add('resolve', function(str, dirname){
+		str = this.contrast(str, dirname);
+		
+		if ( !str ) return;
+
+		if ( /\.css$/i.test(str) ){ str = str; }
+		else if ( /\.js$/i.test(str) ){ str = str; }
+		else{ str += '.js'; }
+		
+		return str;
+	});
+	
+	requires.add('CompileFactory', function(modules, node){
+		var factory = modules.factory,
+			that = this,
+			inRequire = function(selector){	
+				selector = that.resolve(selector, modules.__dirname);
+				return window.modules.exports[selector].module.exports;
+			};
+	
+		var ret = factory ? factory( inRequire, modules.exports, modules ) : null;
+
+		window.modules.exports[modules.__filename].module = modules;
+		window.modules.exports[modules.__filename].status = false;
+		
+		if ( ret ){
+			window.modules.exports[modules.__filename].module.exports = ret;
+		};
+		
+		if ( /\.js$/.test(modules.__filename) ){
+			node.parentNode.removeChild(node);
+		};
+
+		return window.modules.exports[modules.__filename].module.exports;
+	});
+	
+	requires.add('compile', function(){
+		var url = this.resolve(this.__loadModule);
+		var that = this;
+
+		if ( !window.modules.exports[url] ){
+			window.modules.exports[url] = {
+				status: true,
+				module: {
+					exports: {}
+				}
+			};
+			return new Promise(function(resolve){
+				that.request(url).then(function(node){
+					var modules = null;
+					if ( !node.__LoaderModule__ ){
+						modules = window.__LoaderModule__;
+						if ( modules ){
+							modules.__filename = node.src ? node.src : node.href;
+							modules.__dirname = modules.__filename.split('/').slice(0, -1).join('/');
+						}else{
+							var m = function(){
+								this.exports 		= {};
+								this.__filename		= null;
+								this.__dirname		= null;
+								this.dependencies 	= [];
+								this.factory		= null;
+								this.amd			= false;
+							}
+							modules = new m();
+							modules.__filename = node.src ? node.src : (node.href ? node.href : node.getAttribute('data-href'));
+							modules.__dirname = modules.__filename.split('/').slice(0, -1).join('/');
+						}
+					}else{
+						modules = node.__LoaderModule__;
+					}
+					
+					window.__LoaderModule__ = null;
+
+					if ( modules.dependencies && modules.dependencies.length > 0 ){
+						if ( !modules.amd ){
+							var k = [];
+							
+							for ( var i = 0 ; i < modules.dependencies.length ; i++ ){
+								k.push(new requires(modules.dependencies[i], modules.__filename));
+							}
+							
+							Promise.all(k).then(function(){			
+								resolve(that.CompileFactory(modules, node));
+							});
+							
+						}else{
+							var promiseAMD = function(i, modules, callback){
+								if ( i + 1 > modules.dependencies.length ){
+									callback();
+								}else{
+									var dk = new requires(modules.dependencies[i], modules.__filename);									
+									dk.then(function(){
+										promiseAMD(++i, modules, callback);
+									});
+								}
+							}
+							promiseAMD(0, modules, function(){
+								resolve(that.CompileFactory(modules, node));
+							});
+						}
+						
+					}else{
+						resolve(that.CompileFactory(modules, node));
+					}
+				});
+			});
+		}else{
+			if ( window.modules.exports[url].status ){
+				return new Promise(function(resolve){
+					var wait = function(){
+						setTimeout(function(){
+							if ( !window.modules.exports[url].status ){
+								resolve(window.modules.exports[url].module.exports);
+							}else{
+								wait();
+							}
+						}, 1);
+					};
+					wait();
+				});
+			}else{
+				return Promise.resolve(window.modules.exports[url].module.exports);
+			}
+		}
+	});
+	
+	window.require = function(deps, callback){
+		return window.modules.Promise = window.modules.Promise.then(function(){
+			if ( !readVariableType(deps, 'array') ){ deps = [deps]; };
+		
+			var k = [];
+		
+			for ( var i = 0 ; i < deps.length ; i++ ){
+				k.push(new requires(deps[i], window.Library.httpFile));
+			};
+
+			return Promise.all(k).then(function(){
+				typeof callback === 'function' && callback.apply(this, arguments[0]);
+				return arguments[0];
+			});
+		});
+	}
+	
+	function ResolveParentSelector( p ){
+		var parentNode = p.replace(Library.httpDomain, "");
+			
+		if ( /^\//.test(parentNode) ){
+			parentNode = parentNode.replace(/^\//, "");
+		}
+		
+		var parentArrays = parentNode.split("/"),
+			index = parentArrays.indexOf("..");
+			
+		if ( index > -1 ){
+			index--;
+			
+			if ( index < 0 ){
+				index = 0;
+				parentArrays.splice(0, 1);
+			}
+			else{
+				parentArrays.splice(index, 2);
+			}
+			
+			var x = parentArrays.join("/");
+			
+			if ( !regx_http.test(x) ){
+				x = Library.httpDomain + "/" + x;
+			}
+			
+			return ResolveParentSelector(x);
+		}else{
+			
+			var b = parentArrays.join("/");
+			
+			if ( !regx_http.test(b) ){
+				b = Library.httpDomain + "/" + b;
+			}
+			
+			return b;
+			
+		}
+	};
+	
+})( head = document.head || document.getElementsByTagName('head')[0] || document.documentElement );

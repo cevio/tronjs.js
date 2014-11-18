@@ -119,7 +119,7 @@
 		return str;
 	});
 	
-	requires.add('CompileFactory', function(modules){
+	requires.add('CompileFactory', function(modules, node){
 		var factory = modules.factory,
 			that = this,
 			inRequire = function(selector){	
@@ -134,6 +134,10 @@
 		
 		if ( ret ){
 			window.modules.exports[modules.__filename].module.exports = ret;
+		};
+		
+		if ( /\.js$/.test(modules.__filename) ){
+			node.parentNode.removeChild(node);
 		};
 
 		return window.modules.exports[modules.__filename].module.exports;
@@ -186,7 +190,7 @@
 							}
 							
 							Promise.all(k).then(function(){			
-								resolve(that.CompileFactory(modules));
+								resolve(that.CompileFactory(modules, node));
 							});
 							
 						}else{
@@ -201,12 +205,12 @@
 								}
 							}
 							promiseAMD(0, modules, function(){
-								resolve(that.CompileFactory(modules));
+								resolve(that.CompileFactory(modules, node));
 							});
 						}
 						
 					}else{
-						resolve(that.CompileFactory(modules));
+						resolve(that.CompileFactory(modules, node));
 					}
 				});
 			});
