@@ -1385,10 +1385,6 @@ window.readVariableType = function( object, type ){
 		
 		if ( ret ){
 			window.modules.exports[modules.__filename].module.exports = ret;
-		}else{
-			if ( getEmpty(window.modules.exports[modules.__filename].module.exports) && depicals.length > 3 ){
-				window.modules.exports[modules.__filename].module.exports = depicals.slice(0, -3);
-			}
 		};
 		
 		if ( /\.js$/.test(modules.__filename) ){
@@ -1445,7 +1441,7 @@ window.readVariableType = function( object, type ){
 							}
 							
 							Promise.all(k).then(function(){
-								var argcs = Array.prototype.slice.call(arguments[0], 0);	
+								var argcs = Array.prototype.slice.call(arguments[0], 0);
 								resolve(that.CompileFactory(modules, node, argcs));
 							});
 							
@@ -1457,7 +1453,7 @@ window.readVariableType = function( object, type ){
 								}else{
 									var dk = new requires(modules.dependencies[i], modules.__filename);									
 									dk.then(function(value){
-										argcs.push(value[0]);
+										argcs.push(value);
 										promiseAMD(++i, modules, callback);
 									});
 								}
