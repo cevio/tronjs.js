@@ -3,8 +3,11 @@
 	var REQUIRE_RE = /"(?:\\"|[^"])*"|'(?:\\'|[^'])*'|\/\*[\S\s]*?\*\/|\/(?:\\\/|[^/\r\n])+\/(?=[^\/])|\/\/.*|\.\s*require|(?:^|[^$])\brequire\s*\(\s*(["'])(.+?)\1\s*\)/g;
 	var SLASH_RE = /\\\\/g;
 	
+	window.__LoaderModule__ = [];
+	
 	window.define = window.define || function(){
-		var dependencies = [], 
+		var moduleName = null;
+			dependencies = [], 
 			factory = function(){}, 
 			amd = false;
 
@@ -17,15 +20,13 @@
 			else if ( readVariableType(argc, 'boolean') ){
 				amd = argc;
 			}
-			else{
+			else if ( readVariableType(argc, 'array') ){
 				dependencies = argc;
 			}
-		}
-		
-		if ( dependencies && !readVariableType(dependencies, 'array') ){
-			dependencies = [dependencies];
-		};
-		
+			else if ( readVariableType(argc, 'string') ){
+				moduleName = argc;
+			}
+		}	
 		
 		var m = new module();
 		var d = parseDependencies(factory.toString());
@@ -33,27 +34,32 @@
 		if ( d && d.length > 0 ){
 			dependencies = dependencies.concat(d);
 		}
-
+		
+		m.__filename = moduleName;
 		m.dependencies = dependencies;
 		m.factory = factory;
 		m.amd = amd;
 		
+		var script = null;
+		
 		if ( isIE ){
-			var script = getCurrentScript();
+			script = getCurrentScript();
 			if ( script ){
-				
-				m.__filename = script.src;
-				m.__dirname = m.__filename.split('/').slice(0, -1).join('/');
-				script.__LoaderModule__ = m;
-			}else{
-				window.__LoaderModule__ = m;
+				if ( !m.__filename || m.__filename.length === 0 ){
+					m.__filename = script.src;
+				}	
 			}
-		}else{
-			window.__LoaderModule__ = m;
+		}
+		
+		window.__LoaderModule__.push(m);
+		
+		if ( isIE && script ){
+			script.__LoaderModule__ = Array.prototype.slice.call(window.__LoaderModule__, 0);
+			window.__LoaderModule__ = [];
 		}
 
 	};
-	
+
 	window.define.amd = true;
 	
 	function unique(arr){
