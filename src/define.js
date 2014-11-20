@@ -44,11 +44,6 @@
 		
 		if ( isIE ){
 			script = getCurrentScript();
-			if ( script ){
-				if ( !m.__filename || m.__filename.length === 0 ){
-					m.__filename = script.src;
-				}	
-			}
 		}
 		
 		window.__LoaderModule__.push(m);

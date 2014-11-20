@@ -73,9 +73,7 @@
 		}
 	});
 	
-	requires.add('contrast', function(str, dirname){
-		dirname = dirname || this.__dirname;
-		
+	function contrasted(str, dirname){
 		if ( str === undefined || typeof str !== 'string' ){
 			throw 'Tronjs Error Message: Error Selector String. It Must Be Exist. Now It Is Undefined.';
 			return;
@@ -108,10 +106,10 @@
 		else{ str = dirname + '/' + str.replace(/^\.\//, ''); }
 		
 		return str;
-	});
+	}
 	
-	requires.add('resolve', function(str, dirname){
-		str = this.contrast(str, dirname);
+	function resolved(str, dirname){
+		str = contrasted(str, dirname);
 		
 		if ( !str ) return;
 
@@ -120,14 +118,37 @@
 		else{ str += '.js'; }
 		
 		return str;
+	}
+	
+	requires.add('contrast', function(str, dirname){
+		dirname = dirname || this.__dirname;
+		return contrasted(str, dirname);
+	});
+	
+	requires.add('resolve', function(str, dirname){
+		dirname = dirname || this.__dirname;
+		return resolved(str, dirname);
+	});
+	
+	requires.add('inRequire', function(selector, dirname){
+		if ( window.modules.exports[selector] ){
+			return window.modules.exports[selector].module.exports;
+		}else{
+			selector = this.resolve(selector, dirname);
+			return window.modules.exports[selector].module.exports;
+		}
 	});
 	
 	requires.add('CompileFactory', function(modules, depicals){
 		var factory = modules.factory,
 			that = this,
-			inRequire = function(selector){	
-				selector = that.resolve(selector, modules.__dirname);
-				return window.modules.exports[selector].module.exports;
+			inRequire = function(selector){
+				if ( window.modules.exports[selector] ){
+					return window.modules.exports[selector].module.exports;
+				}else{
+					selector = that.resolve(selector, modules.__dirname);
+					return window.modules.exports[selector].module.exports;
+				}
 			};
 
 		var ret = null;
@@ -136,14 +157,14 @@
 			ret = typeof factory === 'function' ? factory.apply( this, depicals ) : null;
 		}catch(e){}
 
-		window.modules.exports[modules.__filename].module = modules;
-		window.modules.exports[modules.__filename].status = false;
+		window.modules.exports[modules.__modulename].module = modules;
+		window.modules.exports[modules.__modulename].status = false;
 		
 		if ( ret ){
-			window.modules.exports[modules.__filename].module.exports = ret;
+			window.modules.exports[modules.__modulename].module.exports = ret;
 		};
 
-		return window.modules.exports[modules.__filename].module.exports;
+		return window.modules.exports[modules.__modulename].module.exports;
 	});
 	
 	requires.add('parseModules', function(node){
@@ -160,13 +181,15 @@
 			for ( var i = 0 ; i < modules.length ; i++ ){
 				if ( !modules[i].__filename || modules[i].__filename.length === 0 ){
 					modules[i].__filename = node.src ? node.src : node.href;
+					modules[i].__modulename = modules[i].__filename;
+					modules[i].__dirname = modules[i].__filename.split('/').slice(0, -1).join('/');
 				}else{
 					var dpath = node.src ? node.src : node.href;
 					var durl = this.resolve(modules[i].__filename, dpath.split('/').slice(0, -1).join('/'));
-					modules[i].__filename = durl;
+					modules[i].__modulename = durl;
+					modules[i].__filename = dpath;
+					modules[i].__dirname = dpath.split('/').slice(0, -1).join('/');
 				}
-				
-				modules[i].__dirname = modules[i].__filename.split('/').slice(0, -1).join('/');
 
 				keepModules.push(modules[i]);
 			}
@@ -176,6 +199,7 @@
 			var m = function(){
 				this.exports 		= {};
 				this.__filename		= null;
+				this.__modulename	= null;
 				this.__dirname		= null;
 				this.dependencies 	= [];
 				this.factory		= null;
@@ -183,6 +207,7 @@
 			}
 			_modules = new m();
 			_modules.__filename = node.src ? node.src : node.href;
+			_modules.__modulename = _modules.__filename;
 			_modules.__dirname = _modules.__filename.split('/').slice(0, -1).join('/');
 			modules = [_modules];
 		}
@@ -193,93 +218,88 @@
 	});
 	
 	requires.add('parseModuleDependencies', function(modules, resolve, node){
-		
 		var Promises = [], 
 			that = this;
-		
+
 		for ( var i = 0 ; i < modules.length ; i++ ){
 			var module = modules[i];
-			Promises.push(new Promise(function(_resolve){
-				if ( !window.modules.exports[module.__filename] ){
-					window.modules.exports[module.__filename] = {
-						status: true,
-						module: {
-							exports: {}
-						}
-					};
-
-					if ( module.dependencies && module.dependencies.length > 0 ){
-						if ( !module.amd ){
-							var PromiseRequires = [];
-							
-							for ( var i = 0 ; i < module.dependencies.length ; i++ ){
-								PromiseRequires.push(new requires(module.dependencies[i], module.__filename));
+			if ( /item\.js$/.test(module.__modulename) ){
+				console.log(module)
+			}
+			Promises.push(
+				new Promise(function(_resolve){
+					if ( !window.modules.exports[module.__modulename] ){
+						window.modules.exports[module.__modulename] = {
+							status: true,
+							module: {
+								exports: {}
 							}
-							Promise.all(PromiseRequires).then(function(){
-								var argcs = Array.prototype.slice.call(arguments[0], 0);
-								_resolve(that.CompileFactory(module, argcs));
-							});
-							
-						}else{
-							var argcs = [];
-							var promiseAMD = function(i, module, callback){
-								if ( i + 1 > module.dependencies.length ){
-									callback();
-								}else{
-
-									var PromiseRequire = new requires(module.dependencies[i], module.__filename);									
-									PromiseRequire.then(function(value){
-										argcs.push(value);
-										promiseAMD(++i, module, callback);
-									});
+						};
+	
+						if ( module.dependencies && module.dependencies.length > 0 ){
+							if ( !module.amd ){
+								var PromiseRequires = [];
+								for ( var i = 0 ; i < module.dependencies.length ; i++ ){
+									PromiseRequires.push(new requires(module.dependencies[i], module.__filename));
 								}
+								Promise.all(PromiseRequires).then(function(){
+									var argcs = [];
+			
+									for ( var j = 0 ; j < module.dependencies.length ; j++ ){
+										argcs.push(that.inRequire(module.dependencies[j], module.__dirname));
+									}
+									
+									that.CompileFactory(module, argcs);
+									_resolve();
+								});
+								
+							}else{
+								var argcs = [];
+								var promiseAMD = function(i, module, callback){
+									if ( i + 1 > module.dependencies.length ){
+										callback();
+									}else{
+	
+										var PromiseRequire = new requires(module.dependencies[i], module.__filename);									
+										PromiseRequire.then(function(){
+											argcs.push(that.inRequire(module.dependencies[i], module.__dirname));
+											promiseAMD(++i, module, callback);
+										});
+									}
+								}
+								promiseAMD(0, module, function(){
+									that.CompileFactory(module, argcs);
+									_resolve();
+								});
 							}
-							promiseAMD(0, module, function(){
-								_resolve(that.CompileFactory(module, argcs));
-							});
+						}else{
+							that.CompileFactory(module, []);
+							_resolve();
 						}
 					}else{
-						_resolve(that.CompileFactory(module, []));
-					}
-				}else{
-					that.parseResolveRequire(module.__filename, _resolve);
-				}	
-			}));
+						that.parseResolveRequire(module.__modulename, _resolve);
+					}	
+				})
+			);
 		}
 		
 		Promise.all(Promises).then(function(){
-			var argcs = Array.prototype.slice.call(arguments[0], 0);
 			var __filename__ = node.src ? node.src : node.href;
 			if ( /\.js$/.test(__filename__) ){
 				node.parentNode.removeChild(node);
 			};
-			resolve(window.modules.exports[__filename__].module.exports);
+			resolve();
 		});
 		
 	});
 	
-	requires.add('compile', function(){
-		var url = this.resolve(this.__loadModule);
-		var that = this;
-
-		if ( !window.modules.exports[url] ){
-			return new Promise(function(resolve){
-				that.request(url).then(function(node){
-					that.parseModuleDependencies(that.parseModules(node), resolve, node);
-				});
-			});
-		}else{
-			return this.parseResolveRequire(url);
-		}
-	});
-	
 	requires.add('parseResolveRequire', function(url, resolve){
-		
+		var that = this;
 		var delays = function(uri, _resolve){
 			var wait = function(){
 				setTimeout(function(){
 					if ( !window.modules.exports[url].status ){
-						_resolve(window.modules.exports[url].module.exports);
+						_resolve();
 					}else{
 						wait();
 					}
@@ -296,12 +316,28 @@
 			}
 		}else{
 			if ( !resolve ){
-				return Promise.resolve(window.modules.exports[url].module.exports);
+				return Promise.resolve();
 			}else{
-				resolve(window.modules.exports[url].module.exports);
+				resolve();
 			}
 		}
 		
+	});
+	
+	requires.add('compile', function(){
+		var that = this;
+		var url = this.resolve(this.__loadModule);
+		
+		if ( !window.modules.exports[url] ){
+			return new Promise(function(resolve){
+				that.request(url).then(function(node){
+					that.parseModuleDependencies(that.parseModules(node), resolve, node);
+				});
+			});
+		}else{
+			return this.parseResolveRequire(url);
+		}
+
 	});
 	
 	window.require = function(deps, callback){
@@ -309,14 +345,26 @@
 			if ( !readVariableType(deps, 'array') ){ deps = [deps]; };
 		
 			var k = [];
-		
+
 			for ( var i = 0 ; i < deps.length ; i++ ){
 				k.push(new requires(deps[i], window.Library.httpFile));
 			};
 
 			return Promise.all(k).then(function(){
-				typeof callback === 'function' && callback.apply(this, arguments[0]);
-				return arguments[0];
+				var t = [];
+				for ( var j = 0 ; j < deps.length ; j++ ){
+					
+					if ( window.modules.exports[deps[j]] ){
+						t.push(window.modules.exports[deps[j]]);
+					}else{
+						var selector = resolved(deps[j], window.Library.httpFile.split('/').slice(0, -1).join('/'));
+						t.push(window.modules.exports[selector].module.exports);
+					}
+				}
+
+				typeof callback === 'function' && callback.apply(null, t);
+
+				return t;
 			});
 		});
 	}
