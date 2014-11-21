@@ -154,14 +154,12 @@
 		var ret = null;
 		try{
 			depicals = depicals.concat([inRequire, modules.exports, modules]);
-			ret = typeof factory === 'function' ? factory.apply(window.modules.exports[modules.__modulename].module.exports, depicals ) : null;
+			if ( typeof factory === 'function' ){
+				ret = factory.apply(window.modules.exports[modules.__modulename].module.exports, depicals ) || null;
+			}else{
+				ret = factory;
+			}
 		}catch(e){
-			console.log({
-				file: modules.__modulename,
-				factory: factory,
-				deps: depicals,
-				message: e.message
-			});
 			ret = window.modules.exports[modules.__modulename].module.exports;
 		}
 
@@ -219,7 +217,6 @@
 					modules[i].__modulename = modules[i].__filename;
 					modules[i].__dirname = modules[i].__filename.split('/').slice(0, -1).join('/');
 					
-					// 直接将依赖关系转化为绝对地址
 					keppdependencies = [];
 					for ( j = 0 ; j < modules[i].dependencies.length ; j++ ){
 						keppdependencies.push(that.resolve(modules[i].dependencies[j], modules[i].__dirname));
@@ -234,7 +231,6 @@
 					modules[i].__filename = dpath;
 					modules[i].__dirname = dpath.split('/').slice(0, -1).join('/');
 					
-					// 直接将依赖关系转化为绝对地址
 					keppdependencies = [];
 					for ( j = 0 ; j < modules[i].dependencies.length ; j++ ){
 						keppdependencies.push(
@@ -247,7 +243,6 @@
 					}
 					
 					modules[i].dependencies = keppdependencies;
-					//console.log(modules[i].__modulename, modules[i].dependencies)
 				}
 
 				keepModules.push(modules[i]);
@@ -337,7 +332,6 @@
 							_resolve();
 						}
 					}else{
-						//console.log(MaskModule)
 						that.parseResolveRequire(MaskModule.__modulename, _resolve, MaskModule.inDefine);
 					}	
 				})
@@ -354,10 +348,10 @@
 		
 	});
 	
-	requires.add('parseResolveRequire', function(url, resolve, package){
+	requires.add('parseResolveRequire', function(url, resolve, inDefine){
 		var that = this;
 		var delays = function(uri, _resolve){
-			if ( package ){
+			if ( inDefine ){
 				_resolve();
 			}else{
 				var wait = function(){

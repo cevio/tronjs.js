@@ -25,6 +25,8 @@
 			}
 			else if ( readVariableType(argc, 'string') ){
 				moduleName = argc;
+			}else{
+				factory = argc;
 			}
 		}	
 		
@@ -72,7 +74,6 @@
 		return ret;
 	};
 	
-	//处理依赖关系方法
 	function parseDependencies( code ){
 		var ret = [], m;
 			
