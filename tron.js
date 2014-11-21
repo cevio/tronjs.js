@@ -1402,12 +1402,20 @@ window.readVariableType = function( object, type ){
 		var ret = null;
 		try{
 			depicals = depicals.concat([inRequire, modules.exports, modules]);
-			ret = typeof factory === 'function' ? factory.apply( this, depicals ) : null;
-		}catch(e){}
+			ret = typeof factory === 'function' ? factory.apply(window.modules.exports[modules.__modulename].module.exports, depicals ) : null;
+		}catch(e){
+			console.log({
+				file: modules.__modulename,
+				factory: factory,
+				deps: depicals,
+				message: e.message
+			});
+			ret = window.modules.exports[modules.__modulename].module.exports;
+		}
 
 		window.modules.exports[modules.__modulename].module = modules;
 		window.modules.exports[modules.__modulename].status = false;
-		
+
 		if ( ret ){
 			window.modules.exports[modules.__modulename].module.exports = ret;
 		};
@@ -1415,9 +1423,34 @@ window.readVariableType = function( object, type ){
 		return window.modules.exports[modules.__modulename].module.exports;
 	});
 	
+	requires.add('inDefineResolve', function(str, base, localModuleDir){
+		if ( window.modules.maps[str] ){ 
+			str = window.modules.maps[str]; 
+		};
+		
+		// root like /a/b/c
+		if ( regx_root.test(str) ){ 
+			str = localModuleDir + str; 
+		}
+		// http://
+		else if ( regx_http.test(str) ){ 
+			str = str; 
+		}
+		// parent like ../a/b/c
+		else if ( regx_parent.test(str) ){
+			str = ResolveParentSelector(localModuleDir + '/' + str); 
+		}
+		// self like ./a/b/c
+		else if ( regx_self.test(str) ){ str = localModuleDir + '/' + str.replace(/^\.\//, ''); }
+		// base like a/b/c
+		else{ str = base + '/' + str.replace(/^\.\//, ''); }
+		
+		return str;
+	});
+	
 	requires.add('parseModules', function(node){
 
-		var modules = null, _modules = null;
+		var modules = null, _modules = null, that = this;
 		if ( !node.__LoaderModule__ ){
 			modules = Array.prototype.slice.call(window.__LoaderModule__, 0);
 		}else{
@@ -1427,16 +1460,42 @@ window.readVariableType = function( object, type ){
 		if ( modules.length > 0 ){
 			var keepModules = [];
 			for ( var i = 0 ; i < modules.length ; i++ ){
+				var keppdependencies = [], j = 0;
 				if ( !modules[i].__filename || modules[i].__filename.length === 0 ){
+					modules[i].inDefine = false;
 					modules[i].__filename = node.src ? node.src : node.href;
 					modules[i].__modulename = modules[i].__filename;
 					modules[i].__dirname = modules[i].__filename.split('/').slice(0, -1).join('/');
+					
+					// 直接将依赖关系转化为绝对地址
+					keppdependencies = [];
+					for ( j = 0 ; j < modules[i].dependencies.length ; j++ ){
+						keppdependencies.push(that.resolve(modules[i].dependencies[j], modules[i].__dirname));
+					}
+					modules[i].dependencies = keppdependencies;
+					
 				}else{
 					var dpath = node.src ? node.src : node.href;
 					var durl = this.resolve(modules[i].__filename, dpath.split('/').slice(0, -1).join('/'));
+					modules[i].inDefine = true;
 					modules[i].__modulename = durl;
 					modules[i].__filename = dpath;
 					modules[i].__dirname = dpath.split('/').slice(0, -1).join('/');
+					
+					// 直接将依赖关系转化为绝对地址
+					keppdependencies = [];
+					for ( j = 0 ; j < modules[i].dependencies.length ; j++ ){
+						keppdependencies.push(
+							that.inDefineResolve(
+								modules[i].dependencies[j], 
+								modules[i].__dirname, 
+								modules[i].__modulename.split('/').slice(0, -1).join('/')
+							)
+						);
+					}
+					
+					modules[i].dependencies = keppdependencies;
+					//console.log(modules[i].__modulename, modules[i].dependencies)
 				}
 
 				keepModules.push(modules[i]);
@@ -1454,6 +1513,7 @@ window.readVariableType = function( object, type ){
 				this.amd			= false;
 			}
 			_modules = new m();
+			_modules.inDefine = false;
 			_modules.__filename = node.src ? node.src : node.href;
 			_modules.__modulename = _modules.__filename;
 			_modules.__dirname = _modules.__filename.split('/').slice(0, -1).join('/');
@@ -1461,7 +1521,7 @@ window.readVariableType = function( object, type ){
 		}
 		
 		window.__LoaderModule__ = [];
-		
+
 		return modules;
 	});
 	
@@ -1471,66 +1531,67 @@ window.readVariableType = function( object, type ){
 
 		for ( var i = 0 ; i < modules.length ; i++ ){
 			var module = modules[i];
-			if ( /item\.js$/.test(module.__modulename) ){
-				console.log(module)
-			}
+
 			Promises.push(
 				new Promise(function(_resolve){
-					if ( !window.modules.exports[module.__modulename] ){
-						window.modules.exports[module.__modulename] = {
+					var MaskModule = module;
+					
+					if ( !window.modules.exports[MaskModule.__modulename] ){
+						window.modules.exports[MaskModule.__modulename] = {
 							status: true,
 							module: {
-								exports: {}
+								exports: {},
+								inDefine: MaskModule.inDefine
 							}
 						};
-	
-						if ( module.dependencies && module.dependencies.length > 0 ){
-							if ( !module.amd ){
+						
+						
+
+						if ( MaskModule.dependencies && MaskModule.dependencies.length > 0 ){
+							if ( !MaskModule.amd ){
 								var PromiseRequires = [];
-								for ( var i = 0 ; i < module.dependencies.length ; i++ ){
-									PromiseRequires.push(new requires(module.dependencies[i], module.__filename));
+								for ( var o = 0 ; o < MaskModule.dependencies.length ; o++ ){
+									PromiseRequires.push(new requires(MaskModule.dependencies[o], MaskModule.__filename));
 								}
 								Promise.all(PromiseRequires).then(function(){
 									var argcs = [];
-			
-									for ( var j = 0 ; j < module.dependencies.length ; j++ ){
-										argcs.push(that.inRequire(module.dependencies[j], module.__dirname));
+									for ( var j = 0 ; j < MaskModule.dependencies.length ; j++ ){
+										argcs.push(that.inRequire(MaskModule.dependencies[j], MaskModule.__dirname));
 									}
-									
-									that.CompileFactory(module, argcs);
+									that.CompileFactory(MaskModule, argcs);
 									_resolve();
 								});
 								
 							}else{
 								var argcs = [];
-								var promiseAMD = function(i, module, callback){
-									if ( i + 1 > module.dependencies.length ){
+								var promiseAMD = function(z, _module_, callback){
+									if ( z + 1 > _module_.dependencies.length ){
 										callback();
 									}else{
-	
-										var PromiseRequire = new requires(module.dependencies[i], module.__filename);									
+										var PromiseRequire = new requires(_module_.dependencies[z], _module_.__filename);									
 										PromiseRequire.then(function(){
-											argcs.push(that.inRequire(module.dependencies[i], module.__dirname));
-											promiseAMD(++i, module, callback);
+											argcs.push(that.inRequire(_module_.dependencies[z], _module_.__dirname));
+											promiseAMD(++z, _module_, callback);
 										});
 									}
 								}
-								promiseAMD(0, module, function(){
-									that.CompileFactory(module, argcs);
+								promiseAMD(0, MaskModule, function(){
+									that.CompileFactory(MaskModule, argcs);
 									_resolve();
 								});
 							}
 						}else{
-							that.CompileFactory(module, []);
+							that.CompileFactory(MaskModule, []);
 							_resolve();
 						}
 					}else{
-						that.parseResolveRequire(module.__modulename, _resolve);
+						//console.log(MaskModule)
+						that.parseResolveRequire(MaskModule.__modulename, _resolve, MaskModule.inDefine);
 					}	
 				})
 			);
 		}
-		
+
 		Promise.all(Promises).then(function(){
 			var __filename__ = node.src ? node.src : node.href;
 			if ( /\.js$/.test(__filename__) ){
@@ -1541,25 +1602,32 @@ window.readVariableType = function( object, type ){
 		
 	});
 	
-	requires.add('parseResolveRequire', function(url, resolve){
+	requires.add('parseResolveRequire', function(url, resolve, package){
 		var that = this;
 		var delays = function(uri, _resolve){
-			var wait = function(){
-				setTimeout(function(){
-					if ( !window.modules.exports[url].status ){
-						_resolve();
-					}else{
-						wait();
-					}
-				}, 1);
-			};
-			wait();
+			if ( package ){
+				_resolve();
+			}else{
+				var wait = function(){
+					setTimeout(function(){
+						if ( !window.modules.exports[url].status ){
+							_resolve();
+						}else{
+							wait();
+						}
+					}, 1);
+				};
+				wait();
+			}
 		}
-
+		
 		if ( window.modules.exports[url].status ){
 			if ( !resolve ){
-				return new Promise(function(_resolve){ delays(url, _resolve); });
+				return new Promise(function(_resolve){
+					delays(url, _resolve); 
+				});
 			}else{
+				
 				delays(url, resolve);
 			}
 		}else{
@@ -1569,7 +1637,6 @@ window.readVariableType = function( object, type ){
 				resolve();
 			}
 		}
-		
 	});
 	
 	requires.add('compile', function(){
@@ -1583,7 +1650,7 @@ window.readVariableType = function( object, type ){
 				});
 			});
 		}else{
-			return this.parseResolveRequire(url);
+			return this.parseResolveRequire(url, null, window.modules.exports[url].module.inDefine );
 		}
 
 	});
@@ -1592,27 +1659,23 @@ window.readVariableType = function( object, type ){
 		return window.modules.Promise = window.modules.Promise.then(function(){
 			if ( !readVariableType(deps, 'array') ){ deps = [deps]; };
 		
-			var k = [];
+			var KeepPromiseQueens = [], 
+				selectors = [];
 
 			for ( var i = 0 ; i < deps.length ; i++ ){
-				k.push(new requires(deps[i], window.Library.httpFile));
+				KeepPromiseQueens.push(new requires(deps[i], window.Library.httpFile));
+				selectors.push(resolved(deps[i], window.Library.httpFile.split('/').slice(0, -1).join('/')));
 			};
 
-			return Promise.all(k).then(function(){
-				var t = [];
-				for ( var j = 0 ; j < deps.length ; j++ ){
-					
-					if ( window.modules.exports[deps[j]] ){
-						t.push(window.modules.exports[deps[j]]);
-					}else{
-						var selector = resolved(deps[j], window.Library.httpFile.split('/').slice(0, -1).join('/'));
-						t.push(window.modules.exports[selector].module.exports);
-					}
+			return Promise.all(KeepPromiseQueens).then(function(){
+				var defineLoadExports = [];
+				for ( var j = 0 ; j < selectors.length ; j++ ){
+					defineLoadExports.push(window.modules.exports[selectors[j]].module.exports);
 				}
 
-				typeof callback === 'function' && callback.apply(null, t);
+				typeof callback === 'function' && callback.apply(null, defineLoadExports);
 
-				return t;
+				return defineLoadExports;
 			});
 		});
 	}
