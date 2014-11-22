@@ -76,7 +76,7 @@ function getCurrentScript() {
 	if ( !interactiveScript ){
 		interactiveScript = Array.prototype.slice.call(document.scripts, 0).shift().src;
 	};
-	return interactiveScript.replace(/[?#].*/, "");
+	return interactiveScript;
 };
 
 function RequireContrast( str, dirname ){
@@ -140,6 +140,10 @@ function DefineResolve( str, base, localModuleDir ){
 	else if ( regx_self.test(str) ){ str = localModuleDir + '/' + str.replace(/^\.\//, ''); }
 
 	else{ str = base + '/' + str.replace(/^\.\//, ''); }
+
+	if ( /\.css$/i.test(str) ){ str = str; }
+	else if ( /\.js$/i.test(str) ){ str = str; }
+	else{ str += '.js'; }
 	
 	return str;
 };
@@ -255,3 +259,37 @@ function request( url ){
 function getDirName( filename ){
 	return filename.split('/').slice(0, -1).join('/');
 };
+
+function SetModuleStatus( module, status ){
+	window.modules.exports[module.__modename].status = window.modules.status[status];
+};
+
+function GetModuleStatus( module ){
+	return window.modules.exports[module.__modename].status;
+};
+
+function GetExportsBySelectors( selectors ){
+	var newSelectors = [];
+	selectors.forEach(function( selector ){
+		var _exports = null;
+		try{
+			_exports = window.modules.exports[selector].module.exports;
+		}catch(e){}
+		newSelectors.push(_exports);
+	});
+	return newSelectors;
+};
+
+function GetExportsBySelector( selector ){
+	try{
+		return window.modules.exports[selector].module.exports;
+	}catch(e){
+		return null;
+	}
+};
+
+function debug(){
+	if ( window.modules.debug ){
+		console.log.apply(console, arguments);
+	}
+}

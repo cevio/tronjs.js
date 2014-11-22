@@ -24,9 +24,9 @@ function GlobalModule(){
 	this.__filename		= null;					// 单模块所在文件地址
 	this.__dirname		= null;					// 单模块所在文件夹地址
 	this.dependencies 	= [];					// 单模块依赖关系
-	this.factory		= null;					// 单模块主函数
+	this.factory		= function(){};			// 单模块主函数
 	this.async			= false;				// 单模块中依赖关系加载模式 true: 串行 false 并行
-	this.status			= 0;					// 单模块加载状态
+	this.inDefine		= false;				// 单模块是否被打包过
 };
 
 var library = new Class(function(){
@@ -68,5 +68,17 @@ library.add('proxy', function( fn, context ){
 	};
 });
 
+// 模块加载状态码
+GlobalModules.prototype.status = {
+	pending		: 0,							// 模块准备中
+	analyzed	: 1,							// 模块分析中
+	required	: 2,							// 依赖关系处理完毕
+	compiled	: 3								// 编译完毕
+}
+
+GlobalModules.prototype.debug = false;			// 是否调试
+
 window.Library = new library();					// 全局Library库对象
 window.modules = new GlobalModules();			// 全局模块存储空间对象
+
+window.modules.debug = false;

@@ -13,6 +13,7 @@
 		'./src2/module.fns',
 		'./src2/module.define',
 		'./src2/module.require',
+		'./src2/module.dependencies',
 		'./src2/module.compile',
 		'./src2/module.footer',
 		'./src2/json2'

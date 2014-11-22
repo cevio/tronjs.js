@@ -1105,8 +1105,9 @@ function GlobalModule(){
 	this.__filename		= null;					// 单模块所在文件地址
 	this.__dirname		= null;					// 单模块所在文件夹地址
 	this.dependencies 	= [];					// 单模块依赖关系
-	this.factory		= null;					// 单模块主函数
+	this.factory		= function(){};			// 单模块主函数
 	this.async			= false;				// 单模块中依赖关系加载模式 true: 串行 false 并行
+	this.inDefine		= false;				// 单模块是否被打包过
 };
 
 var library = new Class(function(){
@@ -1148,8 +1149,20 @@ library.add('proxy', function( fn, context ){
 	};
 });
 
+// 模块加载状态码
+GlobalModules.prototype.status = {
+	pending		: 0,							// 模块准备中
+	analyzed	: 1,							// 模块分析中
+	required	: 2,							// 依赖关系处理完毕
+	compiled	: 3								// 编译完毕
+}
+
+GlobalModules.prototype.debug = false;			// 是否调试
+
 window.Library = new library();					// 全局Library库对象
 window.modules = new GlobalModules();			// 全局模块存储空间对象
+
+window.modules.debug = false;
 function unique(arr){
 	var obj = {};
 	var ret = [];
@@ -1228,7 +1241,7 @@ function getCurrentScript() {
 	if ( !interactiveScript ){
 		interactiveScript = Array.prototype.slice.call(document.scripts, 0).shift().src;
 	};
-	return interactiveScript.replace(/[?#].*/, "");
+	return interactiveScript;
 };
 
 function RequireContrast( str, dirname ){
@@ -1292,6 +1305,10 @@ function DefineResolve( str, base, localModuleDir ){
 	else if ( regx_self.test(str) ){ str = localModuleDir + '/' + str.replace(/^\.\//, ''); }
 
 	else{ str = base + '/' + str.replace(/^\.\//, ''); }
+
+	if ( /\.css$/i.test(str) ){ str = str; }
+	else if ( /\.js$/i.test(str) ){ str = str; }
+	else{ str += '.js'; }
 	
 	return str;
 };
@@ -1407,28 +1424,63 @@ function request( url ){
 function getDirName( filename ){
 	return filename.split('/').slice(0, -1).join('/');
 };
+
+function SetModuleStatus( module, status ){
+	window.modules.exports[module.__modename].status = window.modules.status[status];
+};
+
+function GetModuleStatus( module ){
+	return window.modules.exports[module.__modename].status;
+};
+
+function GetExportsBySelectors( selectors ){
+	var newSelectors = [];
+	selectors.forEach(function( selector ){
+		var _exports = null;
+		try{
+			_exports = window.modules.exports[selector].module.exports;
+		}catch(e){}
+		newSelectors.push(_exports);
+	});
+	return newSelectors;
+};
+
+function GetExportsBySelector( selector ){
+	try{
+		return window.modules.exports[selector].module.exports;
+	}catch(e){
+		return null;
+	}
+};
+
+function debug(){
+	if ( window.modules.debug ){
+		console.log.apply(console, arguments);
+	}
+}
 // window.define 函数主体
 window.define = window.define || function(){
 	
 	var id = null,
 		dependencies = [],
 		factory = null,
-		async = false;
+		async = false,
+		inDefineModule = false;
 	
 	// 配置参数到具体参数	
 	for ( var i = 0 ; i < arguments.length ; i++ ){
 		var defineArgc = arguments[i];
 
-		if ( readVariableType(argc, 'function') ){
+		if ( readVariableType(defineArgc, 'function') ){
 			factory = defineArgc;
 		}
-		else if ( readVariableType(argc, 'boolean') ){
+		else if ( readVariableType(defineArgc, 'boolean') ){
 			async = defineArgc;
 		}
-		else if ( readVariableType(argc, 'array') ){
+		else if ( readVariableType(defineArgc, 'array') ){
 			dependencies = defineArgc;
 		}
-		else if ( readVariableType(argc, 'string') ){
+		else if ( readVariableType(defineArgc, 'string') ){
 			id = defineArgc;
 		}else{
 			factory = defineArgc;
@@ -1466,40 +1518,262 @@ window.define = window.define || function(){
 	// 处理模块自定义地址
 	if ( id && id.length > 0 ){
 		InstantiationModule.__modename	= id;
-		
 		// 进行地址转换， 转换为绝对地址
+		debug('pending[inDefine]:', InstantiationModule.__modename);
 		InstantiationModule.__modename = RequireResolve(InstantiationModule.__modename, InstantiationModule.__dirname);
+		debug('pending[inDefine]:', InstantiationModule.__modename);
+		// 确定具有自定义的文件名
+		inDefineModule = true;
+		// 同时设置该模块不需要实际加载
+		InstantiationModule.inDefine = true; 
 	}else{
 		InstantiationModule.__modename = InstantiationModule.__filename;
 	};
 	
+	// 如果之前有注册过这个模块就退出
+	if ( window.modules.exports[InstantiationModule.__modename] ){
+		return;
+	};
+	
+	window.modules.exports[InstantiationModule.__modename] = {};
+	window.modules.exports[InstantiationModule.__modename].inDefine = InstantiationModule.inDefine;
+	SetModuleStatus(InstantiationModule, 'pending');
+	debug('pending:', InstantiationModule.__modename);
+	
 	// 处理依赖关系绝对地址
 	var EachDependencies = [];
+	debug('pending[dependencies]:', InstantiationModule.__modename, InstantiationModule.dependencies);
 	if ( InstantiationModule.dependencies.length > 0 ){
 		InstantiationModule.dependencies.forEach(function( DepSelector ){
-			EachDependencies.push(DefineResolve(DepSelector, InstantiationModule.__dirname, getDirName(InstantiationModule.__modename)));
+			if ( inDefineModule ){
+				EachDependencies.push(DefineResolve(DepSelector, InstantiationModule.__dirname, getDirName(InstantiationModule.__modename)));
+			}else{
+				EachDependencies.push(RequireResolve(DepSelector, InstantiationModule.__dirname));
+			};
 		});
 		InstantiationModule.dependencies = EachDependencies;
 	};
 	
-	// 判断游览器运行？
-	var InstantiationBrower = false;
+	SetModuleStatus(InstantiationModule, 'analyzed');
+	debug('analyzed:', InstantiationModule.__modename);
 	
-	// 创建到模块接口
-	window.modules.LoadedModules.push(InstantiationModule);
-	if ( isIE ){
-		InteractiveScript.LoadedModules = Array.prototype.slice.call(window.modules.LoadedModules, 0);
-		window.modules.LoadedModules = [];
-	};
+	// 判断游览器运行？
+	if ( !window.define.amd[InstantiationModule.__filename] ){
+		// 浏览器中直接运行
+		debug('run on brower:', InstantiationModule.__modename, InstantiationModule);
+		onBrowerExecuteScript(InstantiationModule);
+	}else{
+		// 采用模块加载运行
+		debug('require[regist]:', InstantiationModule.__modename);
+		window.modules.LoadedModules.push(InstantiationModule);
+		if ( isIE ){
+			InteractiveScript.LoadedModules = Array.prototype.slice.call(window.modules.LoadedModules, 0);
+		};
+	}
 };
 
 // Window.Define.AMD  规范列表
 window.define.amd = {};
+
+// 在浏览器中直接运行模块函数
+function onBrowerExecuteScript( ExecuteModule ){
+	requireDependencies(ExecuteModule);
+}
 var require = new Class(function( AbsoluteHttpSelector ){
 	this.AbsoluteHttpSelector = AbsoluteHttpSelector;
+	return this.compile();
 });
-function CompileInFactory(){
+
+require.add('compile', function(){
+	var url = this.AbsoluteHttpSelector;
+	return new Promise(function(resolve){
+		window.define.amd[url] = true;
+		debug('require[pending]:', url);
+		
+		if ( window.modules.exports[url] && window.modules.exports[url].inDefine ){
+			if ( window.modules.exports[url].status < 3 ){
+				debug('require[inDefine][wait]:', url);
+				delay(url, resolve);
+			}else{
+				resolve();
+			}
+		}else{
+			if ( window.modules.exports[url] && window.modules.exports[url].status < 3 ){
+				debug('require[inDefine][wait]:', url);
+				delay(url, resolve);
+			}else{
+				if ( !window.modules.exports[url] ){
+					request(url).then(function( node ){
+						var modules = node.LoadedModules,
+							PromiseModules = [];
+							
+						if ( !modules ){ modules = window.modules.LoadedModules; };
+						if ( modules.length === 0 ){
+							var _modules = new GlobalModule();
+								_modules.__filename = node.src ? node.src : node.href;
+								_modules.__modename = _modules.__filename;
+								_modules.__dirname = getDirName(_modules.__modename);
+								window.modules.exports[_modules.__modename] = {};
+								SetModuleStatus(_modules, 'analyzed');
+								modules = [_modules];
+						}
+						
+						modules = Array.prototype.slice.call(modules, 0);
+						window.modules.LoadedModules = [];
+						
+						modules.forEach(function(module){
+							PromiseModules.push(requireDependencies(module));
+						});
+						
+						debug('require[loaded]:', url, PromiseModules);
 	
+						Promise.all(PromiseModules).then(function(){
+							var __filename__ = node.src ? node.src : node.href;
+							if ( /\.js$/.test(__filename__) ){
+								node.parentNode.removeChild(node);
+							};
+							resolve();
+							debug('require[compiled]:', url, modules);
+						});
+					});
+				}else{
+					resolve();
+				}
+			};
+		};
+	});
+});
+
+var delay = function(url, callback){
+	setTimeout(function(){
+		debug('waiting:', url);
+		if ( window.modules.exports[url].status === 3 ){
+			debug('waited:', url);
+			callback();
+		}else{
+			delay(url, callback);
+		}
+	}, 1);
+}
+
+window.require = function(deps, callback){
+	return window.modules.Promise = window.modules.Promise.then(function(){
+		if ( !readVariableType(deps, 'array') ){ deps = [deps]; };
+	
+		var KeepPromiseQueens = [], 
+			selectors = [];
+
+		for ( var i = 0 ; i < deps.length ; i++ ){
+			var dep = RequireResolve(deps[i], getDirName(Library.httpFile));
+			KeepPromiseQueens.push( new require(dep) );
+			selectors.push(dep);
+		};
+
+		return Promise.all(KeepPromiseQueens).then(function(){
+			var defineLoadExports = GetExportsBySelectors(selectors);
+			typeof callback === 'function' && callback.apply(null, defineLoadExports);
+			
+			return Promise.resolve(defineLoadExports);
+		});
+	});
+}
+// 单define模块依赖关系处理
+function requireDependencies( modules ){
+	var dependencies 	= modules.dependencies,
+		MaskModule 		= modules;
+	
+	debug('dependencies[pending]:', modules.__modename, dependencies);
+		
+	return new Promise(function( resolve ){
+		if ( dependencies.length > 0 ){
+			if ( !MaskModule.async ){
+				debug('dependencies[doing][cmd]:', MaskModule.__modename);
+				var Promises = [];
+				dependencies.forEach(function( moduleSelector ){
+					debug('dependencies[getting][cmd]:', moduleSelector);
+					Promises.push( new require(moduleSelector) );
+				});
+				Promise.all(Promises).then(function(){
+					debug('dependencies[getted][cmd]:', MaskModule.__modename);
+					SetModuleStatus(MaskModule, 'required');
+					CompileInFactory(MaskModule, GetExportsBySelectors(dependencies));
+					resolve();
+				});
+			}else{
+				debug('dependencies[doing][amd]:', modules.__modename);
+				var argcs = [];
+				var promiseAMD = function(z, deps, callback){
+					if ( z + 1 > deps.length ){
+						callback();
+					}else{
+						debug('dependencies[getting][amd]:', deps[z]);
+						var PromiseRequire = new require(deps[z]);									
+						PromiseRequire.then(function(){
+							argcs.push(GetExportsBySelector(deps[z]));
+							debug('dependencies[getted][amd]:', MaskModule.__modename);
+							promiseAMD(++z, deps, callback);
+						});
+					}
+				};
+				promiseAMD(0, dependencies, function(){
+					debug('dependencies[done]:', MaskModule.__modename);
+					SetModuleStatus(MaskModule, 'required');
+					CompileInFactory(MaskModule, argcs);
+					resolve();
+				});
+			}
+		}else{
+			debug('dependencies[done]:', modules.__modename, []);
+			SetModuleStatus(modules, 'required');
+			CompileInFactory(modules);
+			resolve();
+		}
+	});
+};
+function CompileInFactory( modules, depicals ){
+	var factory = modules.factory,
+		inRequire = function( selector ){
+			selector = RequireResolve(selector, modules.__dirname);
+			return GetExportsBySelector(selector);
+		};
+	
+	debug('compile[pending]:', modules.__modename);
+	
+	var ret = null,
+		depicals = depicals ? depicals : [];
+
+	modules.require = inRequire;
+	modules.resolve = function( selector ){
+		return RequireResolve.call(modules, selector, modules.__dirname);
+	};
+	modules.contrast = function( selector ){
+		return RequireContrast.call(modules, selector, modules.__dirname);
+	};
+	
+	debug('compile[extend]:', modules.__modename);
+	
+	window.modules.exports[modules.__modename].module = modules;
+	
+	try{
+		depicals = depicals.concat([inRequire, modules.exports, modules]);
+		if ( typeof factory === 'function' ){
+			ret = factory.apply(modules, depicals ) || null;
+		}else{
+			ret = factory;
+		}
+		
+		debug('compile[success]:', modules.__modename, ret);
+	}catch(e){
+		ret = window.modules.exports[modules.__modename].module.exports;
+		debug('compile[error]:', modules.__modename, e.message);
+	}
+
+	if ( ret ){
+		window.modules.exports[modules.__modename].module.exports = ret;
+	};
+	
+	SetModuleStatus(modules, 'compiled');
+	debug('compile[end]:', modules.__modename, ret);
 };
 })( 
 	window.location, 
