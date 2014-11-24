@@ -1,0 +1,1 @@
+evio is <%=z%>% power. 
