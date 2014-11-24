@@ -1217,8 +1217,8 @@ function getInteractiveScript(){
 		var url = stack.replace(/(:\d+)?:\d+$/i, "");//去掉行号与或许存在的出错字符起始位置
 		var nodes = head.getElementsByTagName("script");
 		for ( var j = 0 ; j < nodes.length ; j++ ){
-			if ( nodes[i].src.toLowerCase() == url.toLowerCase() ){
-				return nodes[i];
+			if ( nodes[j].src.toLowerCase() == url.toLowerCase() ){
+				return nodes[j];
 			}
 		}
 	}
