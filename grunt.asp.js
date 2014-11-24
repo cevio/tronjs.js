@@ -12,8 +12,10 @@
 		'./tronasp2/install.js',
 		'./tronasp2/class.js',
 		'./tronasp2/module.js',
+		'./tronasp2/date.js',
 		'./tronasp2/task.js',
 		'./tronasp2/fso.js',
+		'./tronasp2/require.js',
 		'./src2/json2.js',
 		'./tronasp2/footer.asp'
 	];

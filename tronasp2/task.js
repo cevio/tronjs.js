@@ -47,4 +47,8 @@
 		this._stop = true;
 		return this;
 	});
+	task.add('change', function(path, type){
+		this.contexts.path = path && path.length > 0 ? path : this.contexts.path;
+		this.contexts.type = type === undefined || type === null ? this.contexts.type : type;
+	});
 })();

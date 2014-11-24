@@ -32,12 +32,10 @@
 	End Function
 </script>
 <%
-Response.Charset = "UTF-8";
 Response.Buffer = true;
 Server.ScriptTimeOut = 999;
 Session.CodePage = 65001;
 Session.LCID = 2052;
-Response.Charset = "UTF-8";
 /*
  * @overview Global TronJS Scripts Loader - a tiny implementation of Promises/A+ and CommonJS contributors.
  * @copyright Copyright (c) 2014 evio studio and PJBlog5 project
@@ -47,14 +45,26 @@ Response.Charset = "UTF-8";
  */
 var __filename = Server.MapPath(Request.ServerVariables("SCRIPT_NAME")),
 	__dirname = Server.MapPath("./"),
-	require,
-	exports,
-	module;
+	require,						// 模块引用函数
+	exports,						// 模块对外接口
+	module,							// 模块对象
+	contrast,						// 模块转换路径方法
+	resolve,						// 模块转换路径模块的具体方法
+	include,						// 模板加载方法
+	define;
 
-var Class, console, modules, task, fs;
+var Class, console, modules, task, fs, date;
 	
 var JSON = function(){
 	return JSON.stringify.apply(JSON, arguments);
+};
+
+var readVariableType = function( object, type ){
+	if ( !type ){
+		return Object.prototype.toString.call(object).toLowerCase();
+	}else{
+		return Object.prototype.toString.call(object).toLowerCase() === "[object " + type + "]"; 
+	}
 };
 
 if ( ![].indexOf ){
@@ -105,7 +115,9 @@ console.json = function(){
 
 console.debug = function( logs ){
 	if ( modules.debug ){
-		fs.save(contrast('/debug.log'), logs + '\n');
+		var now = date.format(new Date(), 'y-m-d h:i:s'),
+			content = '[' + now + ']:\r\n' + logs + '\r\n\r\n';
+		fs(contrast('/debug.log')).write(content);
 	}
 }
 
@@ -184,11 +196,83 @@ console.debug = function( logs ){
 // GlobalModule Factory.
 ;(function(){
 	var GlobalModule = new Class(function(){
-		this.debug = false;
-		this.charset = "utf-8";
+		this.debug = false;									// 是否开启调试
+		this.charset = "utf-8";								// 整站统一编码
+		this.time = new Date().getTime();					// 框架运行开始时间点
+		this.timer =  function(){							// 框架运行时间 (ms)
+			return (new Date().getTime()) - this.time;
+		};
+		this.exports = {};									// 所有模块的集合
+		this.maps = {};										// 所有映射模块集合
+		this.host = Server.MapPath("/");					// 网站的根目录
+		this.base = this.host + '';							// 网站基址
+	});
+	
+	GlobalModule.add('scriptExec', function( callback, params ){
+		console.log('<script language="javascript" type="text/javascript">' + ('(' + callback.toString() + ')(' + JSON.stringify(params) + ');') + '</script>\n');
+	});
+	
+	GlobalModule.add('writeCss', function( urls ){
+		if ( !readVariableType(urls, 'array') ){ urls = [urls]; };
+		urls.forEach(function(url){
+			if ( url && url.length > 0 ){
+				console.log('<link rel="stylesheet" type="text/css" href="' + url + '">\n');
+			}
+		});
+	});
+	
+	GlobalModule.add('writeScript', function( urls ){
+		if ( !readVariableType(urls, 'array') ){
+			urls = [urls];
+		}
+		urls.forEach(function(url){
+			if ( url && url.length > 0 ){
+				console.log('<script language="javascript" type="text/javascript" src="' + url + '"></script>\n');
+			}
+		});
 	});
 	
 	modules = new GlobalModule();
+	Response.Charset = modules.charset;
+})();
+// Date Factory.
+;(function(){
+	date = date ? date : {};
+	date.format = function( DateObject, type ){
+		
+		if ( Object.prototype.toString.call(DateObject).split(" ")[1].toLowerCase().replace("]", "") !== "date" ){
+			DateObject = new Date(DateObject);
+		}
+		
+		var date = DateObject,
+			year = (date.getFullYear()).toString(),
+			_month = date.getMonth(),
+			month = (_month + 1).toString(),
+			day = (date.getDate()).toString(),
+			hour = (date.getHours()).toString(),
+			miniter = (date.getMinutes()).toString(),
+			second = (date.getSeconds()).toString(),
+			_day, _year;
+			
+		var dateArray = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];	
+		
+		month = month.length === 1 ? "0" + month : month;
+		_day = day;
+		day = day.length === 1 ? "0" + day : day;
+		hour = hour.length === 1 ? "0" + hour : hour;
+		miniter = miniter.length === 1 ? "0" + miniter : miniter;
+		second = second.length === 1 ? "0" + second : second;
+			
+		return type.replace(/y/g, year)
+				.replace(/m/g, month)
+				.replace(/d/g, day)
+				.replace(/h/g, hour)
+				.replace(/i/g, miniter)
+				.replace(/s/g, second)
+				.replace(/D/g, _day)
+				.replace(/M/g, dateArray[_month]);
+				
+	}
 })();
 // Task Factory.
 ;(function(){
@@ -238,6 +322,10 @@ console.debug = function( logs ){
 	task.add('stop', function(){
 		this._stop = true;
 		return this;
+	});
+	task.add('change', function(path, type){
+		this.contexts.path = path && path.length > 0 ? path : this.contexts.path;
+		this.contexts.type = type === undefined || type === null ? this.contexts.type : type;
 	});
 })();
 // FSO Factory.
@@ -302,13 +390,28 @@ console.debug = function( logs ){
 		});
 	});
 	
+	fso.add('write', function( content ){
+		return this.then(function(){
+			try{
+				var fw = object.OpenTextFile(this.contexts.path, 8, true);
+					fw.WriteLine(content);		
+					fw.Close();
+				this.resolve();
+			}catch(e){ this.reject(); };
+		});
+	});
+	
 	fso.add('getDir', function(){
 		return this.then(function(){
 			this.resolve();
-			if ( /^\w:\\.+$/.test(this.contexts.path) ){
-				return this.contexts.path.split('\\').slice(0, -1).join('\\');
+			if ( this.contexts.type ){
+				return this.contexts.path.replace(/\\$/, '');
 			}else{
-				return this.contexts.path.split('/').slice(0, -1).join('/');
+				if ( /^\w:\\.+$/.test(this.contexts.path) ){
+					return this.contexts.path.split('\\').slice(0, -1).join('\\');
+				}else{
+					return this.contexts.path.split('/').slice(0, -1).join('/');
+				}
 			}
 		});
 	});
@@ -345,12 +448,477 @@ console.debug = function( logs ){
 			}
 		});
 	});
+	
+	fso.add('dirs', function(callback){
+		var that = this;
+		return this.then(function(){
+			if ( this.contexts.type ){
+				var emiot = object.GetFolder(this.contexts.path),
+					dirEmiot = emiot.SubFolders,
+					dirEmiots = new Enumerator(dirEmiot),
+					names = [];
+				
+				for (; !dirEmiots.atEnd(); dirEmiots.moveNext()) {
+					var name = dirEmiots.item().Name;
+					if ( typeof callback === 'function' ){
+						name = callback.call(this, name) || name;
+					};
+					names.push(name);
+				}
+				
+				this.value(names);
+				this.resolve();
+				
+			}else{
+				this.reject();
+			}
+		});
+	});
+	
+	fso.add('files', function(){
+		return this.then(function(){
+			if ( this.contexts.type ){
+				var emiot = object.GetFolder(this.contexts.path),
+					dirEmiot = emiot.Files,
+					dirEmiots = new Enumerator(dirEmiot),
+					names = [];
+				
+				for (; !dirEmiots.atEnd(); dirEmiots.moveNext()) {
+					var name = dirEmiots.item().Name;
+					if ( typeof callback === 'function' ){
+						name = callback.call(this, name) || name;
+					};
+					names.push(name);
+				}
+				
+				this.value(names);
+				this.resolve();
+				
+			}else{
+				this.reject();
+			}
+		});
+	});
+	
+	fso.add('remove', function(){
+		return this.then(function(){
+			if ( this.contexts.type ){
+				object.DeleteFolder(this.contexts.path);
+			}else{
+				object.DeleteFile(this.contexts.path);
+			};
+			this.unExist();
+		});
+	});
+	
+	fso.add('move', function(targetAbsolutePath){
+		return this.then(function(){
+			if ( !this.contexts.type ){
+				object.MoveFile(this.context.path, targetAbsolutePath);
+			}else{
+				object.MoveFolder(this.context.path, targetAbsolutePath);
+			}
+			this.unExist().then(function(){
+				this.change(targetAbsolutePath).exist();
+			});
+		});
+	});
+	
+	fso.add('copy', function(targetAbsolutePath){
+		return this.then(function(){
+			if ( !this.contexts.type ){
+				object.CopyFile(this.context.path, targetAbsolutePath);
+			}else{
+				object.CopyFolder(this.context.path, targetAbsolutePath);
+			}
+			this.exist().then(function(){
+				this.change(targetAbsolutePath).exist();
+			});
+		});
+	});
+	
+	fso.add('reName', function( name ){
+		return this.then(function(){
+			if ( !this.contexts.type ){
+				object.GetFile(this.context.path).Name = name;
+			}else{
+				object.GetFolder(this.context.path).Name = name;
+			}
+			
+			var targetAbsolutePath = this.getDir().value() + '\\' + name;
+			
+			this.unExist().then(function(){
+				this.change(targetAbsolutePath).exist();
+			});
+		});
+	});
+	
+	fso.add('read', function(){
+		return this.then(function(){
+			if ( this.contexts.type ){
+				this.reject();
+			}else{
+				try{
+					var stream = new ActiveXObject("Adodb.Stream"),
+						text;
+				
+						stream.Type = 2; 
+						stream.Mode = 3; 
+						stream.Open();
+						stream.Charset = modules.charset;
+						stream.Position = stream.Size;
+						stream.LoadFromFile(this.contexts.path);
+						text = stream.ReadText;
+						stream.Close();
+					
+					this.resolve();
+					return text;
+				}catch(e){
+					this.reject();
+					return '';
+				}
+			}
+		});
+	});
+	
+	fso.add('readBinary', function(){
+		return this.then(function(){
+			if ( this.contexts.type ){
+				this.reject();
+			}else{
+				var stream = new ActiveXObject("Adodb.Stream"),
+					ret;
+					
+					stream.Type = 1;
+					stream.Open();
+					stream.LoadFromFile(this.contexts.path);
+					ret = stream.Read(-1);
+					stream.Close();
+				
+				this.resolve();	
+				return ret;
+			}
+		});
+	});
 
 	fso.extend(task);
 	
 	fs = function(AbsoluteFilePath, fileType){
 		return new fso(AbsoluteFilePath, fileType).value(AbsoluteFilePath);
 	}
+	
+})();
+// Require Factory.
+;(function(){
+	
+	var RequireParentResolve = function( p ){
+		var parentNode = p.replace(modules.host, "");
+		if ( /^\\/.test(parentNode) ){ parentNode = parentNode.replace(/^\\/, ""); };
+		var parentArrays = parentNode.split("\\"),
+			index = parentArrays.indexOf("..");
+			
+		if ( index > -1 ){
+			index--;
+			if ( index < 0 ){
+				index = 0;
+				parentArrays.splice(0, 1);
+			}else{
+				parentArrays.splice(index, 2);
+			}
+			return RequireParentResolve(modules.host + "\\" + parentArrays.join("\\"));
+		}else{
+			return modules.host + "\\" + parentArrays.join("\\");
+		}
+	}
+	
+	var RequireContrast = function(selector, dir){
+		if ( /^\w:\\.+$/.test(selector) ){
+			return selector;
+		}
+		
+		if ( modules.maps[selector] ){
+			selector = modules.maps[selector];
+		}
+		
+		selector = selector.replace(/\//g, '\\');
+		var host = modules.host,
+			base = modules.base,
+			local = dir;
+
+		if ( /^\\/.test(selector) ){ selector = host + selector; }
+		else if( /^\.\\/.test(selector) ){ selector = local + "\\" + selector.replace(/^\.\\/, ""); }
+		else if ( /^\.\.\\/.test(selector) ){ selector = RequireParentResolve(local + "\\" + selector); }
+		else if ( /^\:/.test(selector) ){ selector = base + "\\" + selector.replace(/^\:/, "").replace(/^\\/, ""); }
+		else{ selector = local + "\\" + selector.replace(/^\.\\/, ""); }
+
+		return selector;
+	}
+	
+	var RequireResolve = function( selector, dir ){
+		var path = RequireContrast( selector, dir );
+		if ( !/\.asp$/i.test(path) && !/\.js$/i.test(path) ){
+			path += ".js";
+		}
+		return path;
+	}
+	
+	var RequireModule = function(){
+		this.__filename = null;
+		this.__dirname = null;
+		this.exports = function(){};
+	};
+	
+	var proxy = function( fn, context ) {
+		return function(){
+			var args = arguments;
+			return fn.apply(context, args);
+		};
+	};
+	
+	function syntax(content){
+		if ( !content || content.length === 0 ){
+			return '';
+		};
+		
+		var percent = '%', 
+			text = '';
+
+		content.split('<' + percent).forEach(function( detail ){
+			var blockEnd = detail.indexOf(percent + '>');
+			if ( blockEnd > -1 ){
+				var temp = textformat(detail.substring(blockEnd + 2));
+				text += (/^\=/.test(detail) ? ";Response.Write(" + detail.substring(1, blockEnd) + ");" : detail.substring(0, blockEnd)) + temp;
+			}else{
+				text += textformat(detail);
+			}
+		});
+		
+		return text;
+	}
+	
+	function textformat(t){
+		if ( t.length > 0 ){
+			return ";Response.Write(\"" + ReplaceBlock(t) + "\");";
+		}else{
+			return "";
+		}
+	}
+	
+	function ReplaceBlock(data){
+		return data
+				.replace(/\\/g, '\\\\')
+				.replace(/\"/g, '\\"')
+				.replace(/\r/g, '\\r')
+				.replace(/\f/g, '\\f')
+				.replace(/\n/g, '\\n')
+				.replace(/\s/g, ' ')
+				.replace(/\t/g, '\\t');
+	}
+
+// require 主模块
+// author evio
+// copyright http://webkits.cn
+	var Require = new Class(function( AbsolutePath ){
+		this.AbsoluteModulePath = AbsolutePath;
+		this.ServerScriptContent = '';
+		return this.compile();
+	});
+
+	Require.add('read', function(){
+		var that = this;
+		fs(this.AbsoluteModulePath).exist().read().then(function(ServerScriptContent){
+			that.ServerScriptContent = ServerScriptContent;
+		}).fail(function(){
+			that.ServerScriptContent = '';
+		});
+	});
+	
+	Require.add('packageServerScriptContent', function(){
+		var wrapper = [
+			'return function (require, exports, module, include, __filename, __dirname, contrast, resolve){', 
+			this.ServerScriptContent, 
+			'};'
+		].join(" ");
+		
+		return (new Function(wrapper))();
+	});
+	
+	Require.add('compile', function(){
+		if ( modules.exports[this.AbsoluteModulePath] ){
+			return modules.exports[this.AbsoluteModulePath].exports;
+		}else{
+			// 读取文件内容
+			this.read();
+			// 打包模块原型
+			var PackageModule = this.packageServerScriptContent();
+			
+			
+			// 创建新的require对象模型
+			var RequireModuleConstructor = new RequireModule();
+			RequireModuleConstructor.__filename = this.AbsoluteModulePath;
+			RequireModuleConstructor.__dirname = RequireModuleConstructor.__filename.split('\\').slice(0, -1).join('\\');
+
+			RequireModuleConstructor.contrast = function( selector ){
+				return RequireContrast(selector, this.__dirname);
+			};
+			
+			RequireModuleConstructor.resolve = function( selector ){
+				return RequireResolve(selector, this.__dirname);
+			};
+			
+			RequireModuleConstructor.require = function( selector ){
+				return new Require(this.resolve(selector));
+			};
+			
+			RequireModuleConstructor.include = function(selector, argcs){
+				new Include(this.contrast(selector), argcs);
+			}
+			
+			// 编译这个模块
+			PackageModule(
+				proxy(RequireModuleConstructor.require, RequireModuleConstructor),
+				RequireModuleConstructor.exports,
+				RequireModuleConstructor,
+				proxy(RequireModuleConstructor.include, RequireModuleConstructor),
+				RequireModuleConstructor.__filename,
+				RequireModuleConstructor.__dirname,
+				proxy(RequireModuleConstructor.contrast, RequireModuleConstructor),
+				proxy(RequireModuleConstructor.resolve, RequireModuleConstructor)
+			);
+			
+			modules.exports[this.AbsoluteModulePath] = RequireModuleConstructor;
+			
+			return modules.exports[this.AbsoluteModulePath].exports;
+		}
+	});
+	
+// Include 主模块
+// author evio
+// copyright http://webkits.cn	
+	var Include = new Class(function( AbsolutePath, AnyArguments ){
+		this.AbsoluteModulePath = AbsolutePath;
+		this.ServerScriptContent = '';
+		this.ServerAnyArguments = AnyArguments || null;
+		this.compile();
+	});
+
+	Include.add('read', function(){
+		var that = this;
+		fs(this.AbsoluteModulePath)
+		.exist()
+		.then(function(value){ if ( /\.asp$/i.test(value) ){ this.resolve(); } else{ this.reject(); }; })
+		.read()
+		.then(function(ServerScriptContent){ that.ServerScriptContent = ServerScriptContent; })
+		.fail(function(){ that.ServerScriptContent = ''; });
+	});
+	
+	Include.add('compile', function(){
+		var syntaxContent = syntax(this.ServerScriptContent);
+		var allParams = [], 
+			allParamsValue = [];
+			
+		if ( this.ServerAnyArguments ){
+			for ( var i in this.ServerAnyArguments ){
+				allParams.push(i);
+				allParamsValue.push(this.ServerAnyArguments[i]);
+			}
+		}
+		
+		var argcs = ['require', 'include', '__filename', '__dirname', 'contrast', 'resolve'], 
+			dirname = this.AbsoluteModulePath.split('\\').slice(0, -1).join('\\');
+			
+		var _contrast = function(selector){
+			return RequireContrast(selector, dirname);
+		}
+		
+		var _resolve = function( selector ){
+			return RequireResolve(selector, dirname);
+		};
+		
+		var _require = function(selector){
+			return new Require(_resolve(selector));
+		};
+		
+		var _filename = this.AbsoluteModulePath;
+		var _dirname = dirname;
+		
+		var _include = function(selector, arcs){
+			new Include(_contrast(selector), arcs);
+		}
+		
+		allParams = allParams.concat(argcs);
+		allParamsValue = allParamsValue.concat([_require, _include, _filename, __dirname, _contrast, _resolve])
+		
+		var wrapper = ['return function (' + allParams.join(', ') + ') { ', syntaxContent, '};'].join("\n"),
+			__module = (new Function(wrapper))();
+
+		__module.apply(this, allParamsValue);
+	});
+// define 主模块
+// author evio
+// copyright http://webkits.cn	
+	var Define = new Class(function( id, dependencies, factory, dirname ){
+		this.__modename = id;
+		this.__dirname = dirname;
+		this.dependencies = dependencies;
+		this.factory = factory;
+		return this.compile();
+	});
+/*	Define = function(){
+		var id = null,
+			dependencies = [],
+			factory = null;
+		
+		// 配置参数到具体参数	
+		for ( var i = 0 ; i < arguments.length ; i++ ){
+			var defineArgc = arguments[i];
+	
+			if ( readVariableType(defineArgc, 'function') ){
+				factory = defineArgc;
+			}
+			else if ( readVariableType(defineArgc, 'array') ){
+				dependencies = defineArgc;
+			}
+			else if ( readVariableType(defineArgc, 'string') ){
+				id = defineArgc;
+			}else{
+				factory = defineArgc;
+			}
+		};
+		
+		
+	};*/
+	(function(RequireModuleConstructor){
+
+		RequireModuleConstructor.__filename = __filename;
+		RequireModuleConstructor.__dirname = RequireModuleConstructor.__filename.split('\\').slice(0, -1).join('\\');
+		
+		RequireModuleConstructor.contrast = function( selector ){
+			return RequireContrast(selector, this.__dirname);
+		};
+		
+		RequireModuleConstructor.resolve = function( selector ){
+			return RequireResolve(selector, this.__dirname);
+		};
+		
+		RequireModuleConstructor.require = function( selector ){
+			return new Require(this.resolve(selector));
+		};
+		
+		RequireModuleConstructor.include = function(selector, argcs){
+			new Include(this.contrast(selector), argcs);
+		};
+		
+		__filename = RequireModuleConstructor.__filename;
+		__dirname = RequireModuleConstructor.__dirname;
+		require = proxy(RequireModuleConstructor.require, RequireModuleConstructor);
+		exports = RequireModuleConstructor.exports;
+		module = RequireModuleConstructor;
+		contrast = proxy(RequireModuleConstructor.contrast, RequireModuleConstructor);
+		resolve = proxy(RequireModuleConstructor.resolve, RequireModuleConstructor);
+		include = proxy(RequireModuleConstructor.include, RequireModuleConstructor);
+		
+	})(new RequireModule());
 	
 })();
 (function () {

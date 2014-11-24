@@ -1,13 +1,25 @@
 ﻿var __filename = Server.MapPath(Request.ServerVariables("SCRIPT_NAME")),
 	__dirname = Server.MapPath("./"),
-	require,
-	exports,
-	module;
+	require,						// 模块引用函数
+	exports,						// 模块对外接口
+	module,							// 模块对象
+	contrast,						// 模块转换路径方法
+	resolve,						// 模块转换路径模块的具体方法
+	include,						// 模板加载方法
+	define;
 
-var Class, console, modules, task, fs;
+var Class, console, modules, task, fs, date;
 	
 var JSON = function(){
 	return JSON.stringify.apply(JSON, arguments);
+};
+
+var readVariableType = function( object, type ){
+	if ( !type ){
+		return Object.prototype.toString.call(object).toLowerCase();
+	}else{
+		return Object.prototype.toString.call(object).toLowerCase() === "[object " + type + "]"; 
+	}
 };
 
 if ( ![].indexOf ){
@@ -58,6 +70,8 @@ console.json = function(){
 
 console.debug = function( logs ){
 	if ( modules.debug ){
-		fs.save(contrast('/debug.log'), logs + '\n');
+		var now = date.format(new Date(), 'y-m-d h:i:s'),
+			content = '[' + now + ']:\r\n' + logs + '\r\n\r\n';
+		fs(contrast('/debug.log')).write(content);
 	}
 }

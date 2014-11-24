@@ -8,17 +8,8 @@
 
 <body>
 <%
-	fs('E:\\code\\tronjs.js\\tronasp2\\header2.asp')
-	.unExist()
-	.autoCreate('123')
-	.then(function(){
-		console.log('ok')
-		console.log(this.value())
-	})
-	.fail(function(){
-		console.log('no')
-	})
-	.stop();
+	var test = require("test-modules/a");
+	console.log(test());
 %>
 </body>
 </html>
