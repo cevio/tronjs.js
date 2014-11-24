@@ -5,8 +5,7 @@
 	module,							// 模块对象
 	contrast,						// 模块转换路径方法
 	resolve,						// 模块转换路径模块的具体方法
-	include,						// 模板加载方法
-	define;
+	include;						// 模板加载方法
 
 var Class, console, modules, task, fs, date;
 	

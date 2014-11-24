@@ -50,8 +50,7 @@ var __filename = Server.MapPath(Request.ServerVariables("SCRIPT_NAME")),
 	module,							// 模块对象
 	contrast,						// 模块转换路径方法
 	resolve,						// 模块转换路径模块的具体方法
-	include,						// 模板加载方法
-	define;
+	include;						// 模板加载方法
 
 var Class, console, modules, task, fs, date;
 	
@@ -714,6 +713,19 @@ console.debug = function( logs ){
 				.replace(/\s/g, ' ')
 				.replace(/\t/g, '\\t');
 	}
+	
+	function createRequireModule( AbsoluteModulePath ){
+		
+		var RequireModuleConstructor = new RequireModule();
+		RequireModuleConstructor.__filename 	= AbsoluteModulePath;
+		RequireModuleConstructor.__dirname 		= RequireModuleConstructor.__filename.split('\\').slice(0, -1).join('\\');
+		RequireModuleConstructor.contrast 		= function( selector ){ return RequireContrast(selector, this.__dirname); };		
+		RequireModuleConstructor.resolve 		= function( selector ){ return RequireResolve(selector, this.__dirname); };		
+		RequireModuleConstructor.require 		= function( selector ){ return new Require(this.resolve(selector)); };		
+		RequireModuleConstructor.include 		= function( selector, argcs ){ new Include(this.contrast(selector), argcs); };
+		
+		return RequireModuleConstructor;
+	}
 
 // require 主模块
 // author evio
@@ -742,7 +754,7 @@ console.debug = function( logs ){
 		
 		return (new Function(wrapper))();
 	});
-	
+
 	Require.add('compile', function(){
 		if ( modules.exports[this.AbsoluteModulePath] ){
 			return modules.exports[this.AbsoluteModulePath].exports;
@@ -752,27 +764,8 @@ console.debug = function( logs ){
 			// 打包模块原型
 			var PackageModule = this.packageServerScriptContent();
 			
-			
 			// 创建新的require对象模型
-			var RequireModuleConstructor = new RequireModule();
-			RequireModuleConstructor.__filename = this.AbsoluteModulePath;
-			RequireModuleConstructor.__dirname = RequireModuleConstructor.__filename.split('\\').slice(0, -1).join('\\');
-
-			RequireModuleConstructor.contrast = function( selector ){
-				return RequireContrast(selector, this.__dirname);
-			};
-			
-			RequireModuleConstructor.resolve = function( selector ){
-				return RequireResolve(selector, this.__dirname);
-			};
-			
-			RequireModuleConstructor.require = function( selector ){
-				return new Require(this.resolve(selector));
-			};
-			
-			RequireModuleConstructor.include = function(selector, argcs){
-				new Include(this.contrast(selector), argcs);
-			}
+			var RequireModuleConstructor = createRequireModule(this.AbsoluteModulePath);
 			
 			// 编译这个模块
 			PackageModule(
@@ -804,7 +797,8 @@ console.debug = function( logs ){
 
 	Include.add('read', function(){
 		var that = this;
-		fs(this.AbsoluteModulePath)
+		
+		 fs(this.AbsoluteModulePath)
 		.exist()
 		.then(function(value){ if ( /\.asp$/i.test(value) ){ this.resolve(); } else{ this.reject(); }; })
 		.read()
@@ -813,6 +807,7 @@ console.debug = function( logs ){
 	});
 	
 	Include.add('compile', function(){
+		this.read();
 		var syntaxContent = syntax(this.ServerScriptContent);
 		var allParams = [], 
 			allParamsValue = [];
@@ -854,71 +849,20 @@ console.debug = function( logs ){
 
 		__module.apply(this, allParamsValue);
 	});
-// define 主模块
-// author evio
-// copyright http://webkits.cn	
-	var Define = new Class(function( id, dependencies, factory, dirname ){
-		this.__modename = id;
-		this.__dirname = dirname;
-		this.dependencies = dependencies;
-		this.factory = factory;
-		return this.compile();
-	});
-/*	Define = function(){
-		var id = null,
-			dependencies = [],
-			factory = null;
-		
-		// 配置参数到具体参数	
-		for ( var i = 0 ; i < arguments.length ; i++ ){
-			var defineArgc = arguments[i];
 	
-			if ( readVariableType(defineArgc, 'function') ){
-				factory = defineArgc;
-			}
-			else if ( readVariableType(defineArgc, 'array') ){
-				dependencies = defineArgc;
-			}
-			else if ( readVariableType(defineArgc, 'string') ){
-				id = defineArgc;
-			}else{
-				factory = defineArgc;
-			}
-		};
+	(function(){
+		var RequireModuleConstructor = createRequireModule(__filename);
 		
+		__filename 	= RequireModuleConstructor.__filename;
+		__dirname 	= RequireModuleConstructor.__dirname;
+		require 	= proxy(RequireModuleConstructor.require, RequireModuleConstructor);
+		exports 	= RequireModuleConstructor.exports;
+		module 		= RequireModuleConstructor;
+		contrast 	= proxy(RequireModuleConstructor.contrast, RequireModuleConstructor);
+		resolve 	= proxy(RequireModuleConstructor.resolve, RequireModuleConstructor);
+		include 	= proxy(RequireModuleConstructor.include, RequireModuleConstructor);
 		
-	};*/
-	(function(RequireModuleConstructor){
-
-		RequireModuleConstructor.__filename = __filename;
-		RequireModuleConstructor.__dirname = RequireModuleConstructor.__filename.split('\\').slice(0, -1).join('\\');
-		
-		RequireModuleConstructor.contrast = function( selector ){
-			return RequireContrast(selector, this.__dirname);
-		};
-		
-		RequireModuleConstructor.resolve = function( selector ){
-			return RequireResolve(selector, this.__dirname);
-		};
-		
-		RequireModuleConstructor.require = function( selector ){
-			return new Require(this.resolve(selector));
-		};
-		
-		RequireModuleConstructor.include = function(selector, argcs){
-			new Include(this.contrast(selector), argcs);
-		};
-		
-		__filename = RequireModuleConstructor.__filename;
-		__dirname = RequireModuleConstructor.__dirname;
-		require = proxy(RequireModuleConstructor.require, RequireModuleConstructor);
-		exports = RequireModuleConstructor.exports;
-		module = RequireModuleConstructor;
-		contrast = proxy(RequireModuleConstructor.contrast, RequireModuleConstructor);
-		resolve = proxy(RequireModuleConstructor.resolve, RequireModuleConstructor);
-		include = proxy(RequireModuleConstructor.include, RequireModuleConstructor);
-		
-	})(new RequireModule());
+	})();
 	
 })();
 (function () {
