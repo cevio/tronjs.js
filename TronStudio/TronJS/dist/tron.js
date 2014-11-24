@@ -4,8 +4,7 @@
  * @license   Licensed under MIT license
  *            See https://github.com/cevio/tronjs.js
  * @version   6.1.223
- */
-// JavaScript Document
+ */// JavaScript Document
 if ( ![].indexOf ){
 	Array.prototype.indexOf = function( value ){
 		var j = -1;
@@ -115,8 +114,7 @@ window.readVariableType = function( object, type ){
 		
 		return this.constructor;
 	};
-})();
-(function() {
+})();(function() {
     "use strict";
 
     function $$utils$$objectOrFunction(x) {
@@ -1077,9 +1075,7 @@ window.readVariableType = function( object, type ){
 		window.Promise = es6$promise$umd$$ES6Promise.Promise;
 		window.polyfill = es6$promise$umd$$ES6Promise.polyfill;
 	};
-}).call(this);
-;(function( host, head, isIE ){
-var _host = host.origin ? host.origin : host.href.split('/').slice(0, 3).join('/'),
+}).call(this);;(function( host, head, isIE ){var _host = host.origin ? host.origin : host.href.split('/').slice(0, 3).join('/'),
 	_base = _host,
 	_file = host.href.split('?')[0];
 
@@ -1162,8 +1158,7 @@ GlobalModules.prototype.debug = false;			// 是否调试
 window.Library = new library();					// 全局Library库对象
 window.modules = new GlobalModules();			// 全局模块存储空间对象
 
-window.modules.debug = false;
-function unique(arr){
+window.modules.debug = false;function unique(arr){
 	var obj = {};
 	var ret = [];
 
@@ -1222,8 +1217,8 @@ function getInteractiveScript(){
 		var url = stack.replace(/(:\d+)?:\d+$/i, "");//去掉行号与或许存在的出错字符起始位置
 		var nodes = head.getElementsByTagName("script");
 		for ( var j = 0 ; j < nodes.length ; j++ ){
-			if ( nodes[j].src.toLowerCase() == url.toLowerCase() ){
-				return nodes[j];
+			if ( nodes[i].src.toLowerCase() == url.toLowerCase() ){
+				return nodes[i];
 			}
 		}
 	}
@@ -1457,8 +1452,7 @@ function debug(){
 	if ( window.modules.debug ){
 		console.log.apply(console, arguments);
 	}
-}
-// window.define 函数主体
+}// window.define 函数主体
 window.define = window.define || function(){
 	
 	var id = null,
@@ -1578,8 +1572,7 @@ window.define.amd = {};
 // 在浏览器中直接运行模块函数
 function onBrowerExecuteScript( ExecuteModule ){
 	requireDependencies(ExecuteModule);
-}
-var require = new Class(function( AbsoluteHttpSelector ){
+}var require = new Class(function( AbsoluteHttpSelector ){
 	this.AbsoluteHttpSelector = AbsoluteHttpSelector;
 	return this.compile();
 });
@@ -1676,8 +1669,7 @@ window.require = function(deps, callback){
 			return Promise.resolve(defineLoadExports);
 		});
 	});
-}
-// 单define模块依赖关系处理
+}// 单define模块依赖关系处理
 function requireDependencies( modules ){
 	var dependencies 	= modules.dependencies,
 		MaskModule 		= modules;
@@ -1729,8 +1721,7 @@ function requireDependencies( modules ){
 			resolve();
 		}
 	});
-};
-function CompileInFactory( modules, depicals ){
+};function CompileInFactory( modules, depicals ){
 	var factory = modules.factory,
 		inRequire = function( selector ){
 			selector = RequireResolve(selector, modules.__dirname);
@@ -1774,13 +1765,11 @@ function CompileInFactory( modules, depicals ){
 	
 	SetModuleStatus(modules, 'compiled');
 	debug('compile[end]:', modules.__modename, ret);
-};
-})( 
+};})( 
 	window.location, 
 	head = document.head || document.getElementsByTagName('head')[0] || document.documentElement,
 	window.navigator.userAgent.indexOf('MSIE') > -1
-);
-(function () {
+);(function () {
     'use strict';
 
     function f(n) {
