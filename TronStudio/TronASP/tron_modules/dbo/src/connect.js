@@ -1,5 +1,4 @@
 var AC = 'ADODB.CONNECTION';
-var AR = 'ADODB.RECORDSET';
 
 /*
  * 数据库连接类
@@ -7,25 +6,26 @@ var AR = 'ADODB.RECORDSET';
  */
 var connect = new Class(function( type, options ){
 	this.object = new ActiveXObject( AC );
+	this.connectString = [];
 	
 	if ( type === 'access' ){ this.Access(options); }
 	else if ( type === 'mssql' ){ this.MsSql(options); }
+	
+	for ( var i = 0 ; i < this.connectString.length; i++ ){
+		try{
+			this.object.Open(this.connectString[i]);
+			break;
+		}catch(e){}
+	};
 	
 	return this.object;
 });
 
 connect.add('Access', function( AccessPath ){
-	var connections = [
+	this.connectString = [
 		'provider=Microsoft.jet.oledb.4.0;data source=' + AccessPath,
 		'driver={microsoft access driver (*.mdb)};dbq=' + AccessPath
 	];
-	
-	for ( var i = 0 ; i < connections.length; i++ ){
-		try{
-			this.object.Open(connections[i]);
-			break;
-		}catch(e){}
-	};
 });
 
 connect.add('MsSql', function( settings ){
@@ -49,10 +49,7 @@ connect.add('MsSql', function( settings ){
 		""
 	].join(";"));
 	
-	for ( var i = 0 ; i < connections.length; i++ ){
-		try{
-			this.object.Open(connections[i]);
-			break;
-		}catch(e){}
-	};
+	this.connectString = connections;
 });
+
+module.exports = connect;
