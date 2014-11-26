@@ -8,7 +8,7 @@ var dbo			 	= dboModule.dbo;
 
 var conn = new connect('mssql', {"netserver":".","access":"blog","username":"evio","password":"1094872"});
 if ( conn ){	
-	console.log('0', '<br />')
+/*	console.log('0', '<br />')
 	var rec = new dbo('blog_members', conn);
 	console.log('1', '<br />')
 	rec.top(10)
@@ -26,8 +26,19 @@ if ( conn ){
 		})
 	console.log('7', '<br />')
 	rec.close();
-	console.log('8', '<br />')
-
+	console.log('8', '<br />')*/
+/*	var rec = new dbo('blog_members', conn);
+	var t = new Date().getTime();
+	for ( var i = 0 ; i < 10000; i++ ){
+		rec.create(2).set({
+			member_nick: (i+1) + 'evio',
+			member_sex: i % 3,
+			member_hashkey: 'db9e186bba99ed3d90133eeb3c3d6387074afbc6',
+			member_mail: 'evio' + i + '@vip.qq.com'
+		}).save().close();
+	}
+	console.log(new Date().getTime() - t);
+*/
 /*	var sql = new dboModule.sql();
 		sql.resetSQL();
 		
@@ -53,7 +64,8 @@ if ( conn ){
 		.gruntSQL();
 	
 	console.log(sql.sql.text);*/
-		
+	var x = require("package.json");
+	console.log(JSON(x))	
 
 }else{
 	console.log('连接数据库失败');

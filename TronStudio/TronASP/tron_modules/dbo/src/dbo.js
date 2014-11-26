@@ -6,7 +6,7 @@ var dbo = new Class(function( table, conn ){
 		return DBOMAPS[table];
 	}
 	
-	this.tables = table;							// 表名
+	this.tables = table;						// 表名
 	this.conn = conn;							// 数据库连接对象
 	this.object = new ActiveXObject( AR );		// RECORDSET对象
 	this.fields = [];							// 字段名集合
@@ -28,7 +28,9 @@ dbo.add('getFields', function(){
 	return this;
 });
 
-dbo.add('create', function(){
+dbo.add('create', function(i){
+	this.selectAll();
+	this.open(i);
 	this.object.AddNew();
 	return this;
 });
