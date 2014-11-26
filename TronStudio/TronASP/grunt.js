@@ -2,9 +2,7 @@
 
 var files = [
 	'src/header.asp',
-	'src/vbsupport.asp',
 	'src/set.asp',
-	'src/contributors.js',
 	'src/install.js',
 	'src/class.js',
 	'src/module.js',
@@ -18,7 +16,7 @@ var files = [
 ];
 	
 var codeWrap = '';
-files.forEach(function( file ){ codeWrap += fs(resolve(file)).exist().read().value(); });
+files.forEach(function( file ){ codeWrap += fs(resolve(file)).exist().read().value() + '\n'; });
 fs(resolve(saveto)).create(codeWrap).then(function(){ 
 	console.log('package ' + resolve(saveto) + ': success!'); 
 }).fail(function(){

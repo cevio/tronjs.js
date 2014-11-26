@@ -1,45 +1,17 @@
-﻿<%@LANGUAGE="JAVASCRIPT" CODEPAGE="65001"%><script runat="SERVER" language="VBSCRIPT">
-	Function VB_AscB( s )
-		VB_AscB = AscB( s )
-	End Function
-	
-	Dim VB_BNCRLF : VB_BNCRLF = ChrB(13) & ChrB(10)
-	Dim VB_DOUBLEBNCRLF : VB_DOUBLEBNCRLF = VB_BNCRLF & VB_BNCRLF
-	
-	Function VB_DRIVER( formData )
-		VB_DRIVER = LeftB( formData, CInt( InstrB( formData, VB_BNCRLF ) ) - 1 )
-	End Function
-	
-	Function VB_INSERTB( formdata, divider )
-		VB_INSERTB = InstrB( formdata, divider )
-	End Function
-	
-	Function VB_INSERTBS( startpos, formdata, divider )
-		VB_INSERTBS = InstrB( startpos, formdata, divider )
-	End Function
-	
-	Function VB_LENB( divider )
-		VB_LENB = LenB( divider )
-	End Function
-	
-	Function VB_MIDBS( a, b, c )
-		VB_MIDBS = MidB( a, b, c )
-	End Function
-	
-	Function VB_MIDB( a, b )
-		VB_MIDB = MidB( a, b )
-	End Function
-</script><%
-Response.Buffer = true;
-Server.ScriptTimeOut = 999;
-Session.CodePage = 65001;
-Session.LCID = 2052;/*
- * @overview Global TronJS Scripts Loader - a tiny implementation of Promises/A+ and CommonJS contributors.
+﻿<%@LANGUAGE="JAVASCRIPT" CODEPAGE="65001"%>
+<%
+/*
+ * @overview Global TronASP jScripts Loader - a tiny implementation of Promises/A+ and CommonJS contributors.
  * @copyright Copyright (c) 2014 evio studio and PJBlog5 project
  * @license   Licensed under MIT license
  *            See https://github.com/cevio/tronjs.js
  * @version   6.1.223
- */var __filename = Server.MapPath(Request.ServerVariables("SCRIPT_NAME")),
+ */
+Response.Buffer = true;
+Server.ScriptTimeOut = 999;
+Session.CodePage = 65001;
+Session.LCID = 2052;
+var __filename = Server.MapPath(Request.ServerVariables("SCRIPT_NAME")),
 	__dirname = Server.MapPath("./"),
 	require,						// 模块引用函数
 	exports,						// 模块对外接口
@@ -115,6 +87,7 @@ console.debug = function( logs ){
 		fs(contrast('/debug.log')).write(content);
 	}
 }
+
 // Class Factory.
 ;(function(){
 	Class = function(){
@@ -186,7 +159,8 @@ console.debug = function( logs ){
 		
 		return this.constructor;
 	};
-})();// GlobalModule Factory.
+})();
+// GlobalModule Factory.
 ;(function(){
 	var GlobalModule = new Class(function(){
 		this.debug = false;									// 是否开启调试
@@ -239,7 +213,8 @@ console.debug = function( logs ){
 	
 	modules = new GlobalModule();
 	Response.Charset = modules.charset;
-})();// Date Factory.
+})();
+// Date Factory.
 ;(function(){
 	date = date ? date : {};
 	date.format = function( DateObject, type ){
@@ -277,7 +252,8 @@ console.debug = function( logs ){
 				.replace(/M/g, dateArray[_month]);
 				
 	}
-})();// Task Factory.
+})();
+// Task Factory.
 ;(function(){
 	task = new Class();
 	task.add('value', function(value){
@@ -330,7 +306,8 @@ console.debug = function( logs ){
 		this.contexts.path = path && path.length > 0 ? path : this.contexts.path;
 		this.contexts.type = type === undefined || type === null ? this.contexts.type : type;
 	});
-})();// FSO Factory.
+})();
+// FSO Factory.
 ;(function(){
 	var object = new ActiveXObject("Scripting.FileSystemObject");
 	var fso = new Class(function(AbsoluteFilePath, fileType){
@@ -609,7 +586,8 @@ console.debug = function( logs ){
 		return new fso(AbsoluteFilePath, fileType).value(AbsoluteFilePath);
 	}
 	
-})();;(function(){
+})();
+;(function(){
 	var Http = new Class(function(){
 		this.req = {};
 	});
@@ -817,7 +795,8 @@ console.debug = function( logs ){
 	
 	http = new Http();
 	ajax = Ajax;
-})();;// Require Factory.
+})();;
+// Require Factory.
 ;(function(){
 	
 	var RequireParentResolve = function( p ){
@@ -936,7 +915,7 @@ console.debug = function( logs ){
 			if ( modules.maps[selector] && modules.maps[selector].length > 0 ){
 				selector = modules.maps[selector];
 			}else{
-				selector = fs(modules.base + '\\tron_modules\\' + selector + '\\index.js').exist().then(function(value){
+				selector = fs(modules.base + '\\tron_modules\\' + selector.replace(/\//g, '\\') + '\\index.js').exist().then(function(value){
 					modules.maps[selector] = value;
 				}).fail(function(value){ return selector }).value();
 			}
@@ -960,7 +939,11 @@ console.debug = function( logs ){
 		fs(this.AbsoluteModulePath).exist().read().then(function(ServerScriptContent){
 			if ( /\.json/i.test(that.AbsoluteModulePath) ){
 				that.ServerScriptContent = 'module.exports = ' + ServerScriptContent + ';';
-			}else{
+			}
+			else if (/\.asp/i.test(that.AbsoluteModulePath)){
+				that.ServerScriptContent = syntax(that.ServerScriptContent);
+			}
+			else{
 				that.ServerScriptContent = ServerScriptContent;
 			}
 		}).fail(function(){
@@ -1087,7 +1070,8 @@ console.debug = function( logs ){
 		
 	})();
 	
-})();(function () {
+})();
+(function () {
     'use strict';
 
     function f(n) {
@@ -1407,4 +1391,5 @@ console.debug = function( logs ){
             throw new SyntaxError('JSON.parse');
         };
     }
-}());%>
+}());
+%>

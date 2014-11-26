@@ -117,7 +117,7 @@
 			if ( modules.maps[selector] && modules.maps[selector].length > 0 ){
 				selector = modules.maps[selector];
 			}else{
-				selector = fs(modules.base + '\\tron_modules\\' + selector + '\\index.js').exist().then(function(value){
+				selector = fs(modules.base + '\\tron_modules\\' + selector.replace(/\//g, '\\') + '\\index.js').exist().then(function(value){
 					modules.maps[selector] = value;
 				}).fail(function(value){ return selector }).value();
 			}
@@ -141,7 +141,11 @@
 		fs(this.AbsoluteModulePath).exist().read().then(function(ServerScriptContent){
 			if ( /\.json/i.test(that.AbsoluteModulePath) ){
 				that.ServerScriptContent = 'module.exports = ' + ServerScriptContent + ';';
-			}else{
+			}
+			else if (/\.asp/i.test(that.AbsoluteModulePath)){
+				that.ServerScriptContent = syntax(that.ServerScriptContent);
+			}
+			else{
 				that.ServerScriptContent = ServerScriptContent;
 			}
 		}).fail(function(){
