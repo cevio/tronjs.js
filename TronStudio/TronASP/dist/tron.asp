@@ -932,7 +932,7 @@ console.debug = function( logs ){
 	});
 	
 	Ajax.add('bin', function(text){
-		var obj = new ActiveXObject(Library.com_stream), 
+		var obj = new ActiveXObject("Adodb.Stream"), 
 			ret;
 			obj.Type = 1;
 			obj.Mode = 3;
@@ -966,7 +966,7 @@ console.debug = function( logs ){
 	});
 	
 	Ajax.add('save', function( content, file ){
-		var object = new ActiveXObject(Library.com_stream);
+		var object = new ActiveXObject("Adodb.Stream");
 			object.Type = 1; 
 			object.Mode = 3; 
 			object.Open();
