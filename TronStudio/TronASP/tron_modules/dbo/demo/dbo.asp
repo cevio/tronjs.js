@@ -65,7 +65,18 @@ if ( conn ){
 	
 	console.log(sql.sql.text);*/
 	var x = require("package.json");
-	console.log(JSON(x))	
+	console.log(JSON(x));
+	
+	var md5 = require('md5');
+	console.log(md5("沈赟杰"), '<br />');
+	var sha1 = require('sha1');
+	console.log(sha1('沈赟杰') + '<br />');
+	
+	var cookie = require('cookie');
+	//cookie.cookie('a', '1');
+	//console.log(cookie.cookie('a'))
+	//cookie.removeCookie('a');
+	//console.log(cookie.cookie('a'))
 
 }else{
 	console.log('连接数据库失败');
