@@ -46,7 +46,7 @@
 	
 	var RequireResolve = function( selector, dir ){
 		var path = RequireContrast( selector, dir );
-		if ( !/\.asp$/i.test(path) && !/\.js$/i.test(path) ){
+		if ( !/\.asp$/i.test(path) && !/\.js$/i.test(path) && !/\.json$/i.test(path) ){
 			path += ".js";
 		}
 		return path;
@@ -108,12 +108,21 @@
 	function createRequireModule( AbsoluteModulePath ){
 		
 		var RequireModuleConstructor = new RequireModule();
-		RequireModuleConstructor.__filename 	= AbsoluteModulePath;
-		RequireModuleConstructor.__dirname 		= RequireModuleConstructor.__filename.split('\\').slice(0, -1).join('\\');
-		RequireModuleConstructor.contrast 		= function( selector ){ return RequireContrast(selector, this.__dirname); };		
-		RequireModuleConstructor.resolve 		= function( selector ){ return RequireResolve(selector, this.__dirname); };		
-		RequireModuleConstructor.require 		= function( selector ){ return new Require(this.resolve(selector)); };		
-		RequireModuleConstructor.include 		= function( selector, argcs ){ new Include(this.contrast(selector), argcs); };
+		RequireModuleConstructor.__filename = AbsoluteModulePath;
+		RequireModuleConstructor.__dirname = RequireModuleConstructor.__filename.split('\\').slice(0, -1).join('\\');
+		RequireModuleConstructor.contrast = function( selector ){ return RequireContrast(selector, this.__dirname); };		
+		RequireModuleConstructor.resolve = function( selector ){ return RequireResolve(selector, this.__dirname); };			
+		RequireModuleConstructor.include = function( selector, argcs ){ new Include(this.contrast(selector), argcs); };
+		RequireModuleConstructor.require = function( selector ){
+			if ( modules.maps[selector] && modules.maps[selector].length > 0 ){
+				selector = modules.maps[selector];
+			}else{
+				selector = fs(modules.base + '\\tron_modules\\' + selector + '\\index.js').exist().then(function(value){
+					modules.maps[selector] = value;
+				}).fail(function(value){ return selector }).value();
+			}
+			return new Require(this.resolve(selector)); 
+		};
 		
 		return RequireModuleConstructor;
 	}
@@ -130,7 +139,11 @@
 	Require.add('read', function(){
 		var that = this;
 		fs(this.AbsoluteModulePath).exist().read().then(function(ServerScriptContent){
-			that.ServerScriptContent = ServerScriptContent;
+			if ( /\.json/i.test(that.AbsoluteModulePath) ){
+				that.ServerScriptContent = 'module.exports = ' + ServerScriptContent + ';';
+			}else{
+				that.ServerScriptContent = ServerScriptContent;
+			}
 		}).fail(function(){
 			that.ServerScriptContent = '';
 		});

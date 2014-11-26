@@ -37,6 +37,18 @@
 		});
 	});
 	
+	GlobalModule.add('setBase', function(str){
+		if ( str === undefined ) { str = ""; }
+
+		if ( str.length > 0 ){
+			this.base = this.host + "\\" + str
+		};
+		
+		if ( /\\+$/.test(this.base) ){
+			this.base = this.base.replace(/\\+$/, '');
+		};
+	});
+	
 	modules = new GlobalModule();
 	Response.Charset = modules.charset;
 })();

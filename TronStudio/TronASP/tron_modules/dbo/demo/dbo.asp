@@ -1,6 +1,6 @@
 ﻿<!--#include file="../../../dist/tron.min.asp" -->
 <%
-	modules.debug 	= false;
+	modules.debug 	= true;
 var dboModule 		= require('../index');
 var connect 		= dboModule.connect;
 var dbo			 	= dboModule.dbo;
