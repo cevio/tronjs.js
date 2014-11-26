@@ -9,8 +9,9 @@ var files = [
 	'src/date.js',
 	'src/task.js',
 	'src/fso.js',
-	'src/http.js',
 	'src/require.js',
+	'src/http.js',
+	'src/dbo.js',
 	'src/json2.js',
 	'src/footer.asp'
 ];

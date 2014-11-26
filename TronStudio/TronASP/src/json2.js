@@ -1,4 +1,5 @@
-(function () {
+// JSON FACTORY
+;(function () {
     'use strict';
 
     function f(n) {

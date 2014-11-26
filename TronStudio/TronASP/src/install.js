@@ -7,7 +7,7 @@
 	resolve,						// 模块转换路径模块的具体方法
 	include;						// 模板加载方法
 
-var Class, console, modules, task, fs, date, http, ajax;
+var Class, console, modules, task, fs, date, http, ajax, connect, dbo;
 	
 var JSON = function(){
 	return JSON.stringify.apply(JSON, arguments);
