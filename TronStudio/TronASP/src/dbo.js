@@ -83,9 +83,9 @@
 		return this;
 	});
 	
-	dbo.add('create', function(i){
+	dbo.add('create', function(){
 		this.selectAll();
-		this.open(i);
+		this.open(2);
 		this.object.AddNew();
 		return this;
 	});
