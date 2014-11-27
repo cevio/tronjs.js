@@ -11,14 +11,13 @@
 })(function () {
 	var Packs = new Class(function(){
 		this.object = new ActiveXObject('Adodb.Stream');
+		console.log(1)
 		this.fileListInfo = '';
+		console.log(1)
 	});
 	
 	// 执行打包操作
 	Packs.add('doPack', function( source, target ){
-		console.debug(source);
-		console.debug(target);
-		console.debug(this.fileListInfo);
 		// 初始化对象
 		this.object.Type = 1; 
 		console.debug('ee是大逗逼');
