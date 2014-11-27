@@ -131,7 +131,7 @@
 				for (; !dirEmiots.atEnd(); dirEmiots.moveNext()) {
 					var name = dirEmiots.item().Name;
 					if ( typeof callback === 'function' ){
-						name = callback.call(this, name) || name;
+						name = callback.call(this, name, dirEmiots.item()) || name;
 					};
 					names.push(name);
 				}
@@ -145,7 +145,7 @@
 		});
 	});
 	
-	fso.add('files', function(){
+	fso.add('files', function(callback){
 		return this.then(function(){
 			if ( this.contexts.type ){
 				var emiot = object.GetFolder(this.contexts.path),
@@ -156,7 +156,7 @@
 				for (; !dirEmiots.atEnd(); dirEmiots.moveNext()) {
 					var name = dirEmiots.item().Name;
 					if ( typeof callback === 'function' ){
-						name = callback.call(this, name) || name;
+						name = callback.call(this, name, dirEmiots.item()) || name;
 					};
 					names.push(name);
 				}
