@@ -83,4 +83,18 @@ TronJS能加载几乎99.99%的国际AMD规范插件和框架。TronASP同样能�
     // factory: 模块主体函数或者对象
     // async: 该模块下是否使用依赖关系的串行加载
 
+
+### TronASP : Get Start
+
+我们首先必须引入我们的主框架
+
+	<!--#include file="tron.min.asp" -->
+	
+值得注意的是我们必须要设置框架的基址。
+
+```javascript
+	modules.setBase('myweb/blog');
+	// 同时你需要注意，我们的tron_modules文件夹必须放在基址的myweb/blog/文件夹下面
+```
+
   [1]: https://github.com/jakearchibald/es6-promise        "Promise"
