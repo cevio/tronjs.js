@@ -9,20 +9,19 @@
         window.Pack = mod();
     }
 })(function () {
-	var object = new ActiveXObject('Adodb.Stream');
-	
-	// 打包类
-	var pack = new Class(function(source, target){
-		this.object = object;
+	var Packs = new Class(function(){
+		this.object = new ActiveXObject('Adodb.Stream');
 		this.fileListInfo = '';
-		
-		// 执行打包操作
-		this.doPack(source, target);
 	});
-
-	pack.add('doPack', function( source, target ){
+	
+	// 执行打包操作
+	Packs.add('doPack', function( source, target ){
+		console.debug(source);
+		console.debug(target);
+		console.debug(this.fileListInfo);
 		// 初始化对象
 		this.object.Type = 1; 
+		console.debug('ee是大逗逼');
 		this.object.Mode = 3; 
 		this.object.Open();
 		this.object.Position = 0;
@@ -50,7 +49,7 @@
 		this.object = null; 
 	});
 	
-	pack.add('getFileList', function( dir ){
+	Packs.add('getFileList', function( dir ){
 		dir = dir.replace(/\\$/, '');
 		var folders = fs.dirList(dir, function( name ){ return dir + '\\' + name; }),
 			files = fs.fileList(dir, function( name ){ return dir + '\\' + name + '>' + this.Size; });
@@ -70,7 +69,7 @@
 		return files;
 	});
 	
-	pack.add('AppendFile', function( path ){
+	Packs.add('AppendFile', function( path ){
 		var obj = new ActiveXObject('Adodb.Stream'), 
 			filepath = path;
 	
@@ -86,7 +85,7 @@
 			obj = null;
 	});
 	
-	pack.add('setHeaderInfo', function( header ){
+	Packs.add('setHeaderInfo', function( header ){
 		var headerSize = '00000000' + this.getStrSize(header).toString();
 		var headerText = 'SPK ' + headerSize.substr(headerSize.length - 8) + ' 00 ' + header + ' ';
 		
@@ -102,7 +101,7 @@
 			obj = null;
 	});
 	
-	pack.add('getStrSize', function( str ){
+	Packs.add('getStrSize', function( str ){
 		var obj = new ActiveXObject('Adodb.Stream'),
 			strSize;
 	
@@ -118,16 +117,8 @@
 		return strSize;						// 计算字符串包含的字节数
 	})
 	
-	// 解包类
-	var unpack = new Class(function(source, target){
-		this.object = object;
-		this.fileListInfo = '';
-		
-		// 执行解包操作
-		this.doUnpack(source, target);
-	});
-	
-	unpack.add('doUnpack', function( source, target ){
+	// 执行解包操作
+	Packs.add('unPack', function( source, target ){
 		// 初始化对象
 		this.object.Type = 1; 
 		this.object.Mode = 3; 
@@ -167,7 +158,7 @@
 		}
 	});
 	
-	unpack.add('getHeaderInfo', function( path ){
+	Packs.add('getHeaderInfo', function( path ){
 		var obj = new ActiveXObject('Adodb.Stream'),
 			text;
 			
@@ -185,7 +176,7 @@
 		return text;	
 	})
 	
-	unpack.add('SaveFile', function( start, length, path ){
+	Packs.add('SaveFile', function( start, length, path ){
 		var obj = new ActiveXObject('Adodb.Stream'), 
 			paths = path;
 	
@@ -198,10 +189,6 @@
 			obj.Close();
 			obj = null;
 	});
-	
-	var Pack = new Class();
-	Pack.pack = new pack;
-	Pack.unpack = new unpack;
-	
-	return Pack;
+		
+	return Packs;
 });
