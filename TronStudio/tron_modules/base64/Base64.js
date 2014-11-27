@@ -6,7 +6,7 @@
         return define([], mod);
     }
     else {
-        window.package = mod();
+        window.Base64 = mod();
     }
 })(function () {
 	var Base64 = {
