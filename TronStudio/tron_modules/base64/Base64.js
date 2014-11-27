@@ -9,221 +9,221 @@
         window.Base64 = mod();
     }
 })(function () {
-	var Base64 = {
-		// 转码表
-		table : [
-				'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-				'I', 'J', 'K', 'L', 'M', 'N', 'O' ,'P',
-				'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-				'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
-				'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
-				'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
-				'w', 'x', 'y', 'z', '0', '1', '2', '3',
-				'4', '5', '6', '7', '8', '9', '+', '/'
-		],
-		UTF16ToUTF8 : function(str) {
-			var res = [], len = str.length;
-			for (var i = 0; i < len; i++) {
-				var code = str.charCodeAt(i);
-				if (code > 0x0000 && code <= 0x007F) {
-					// 单字节，这里并不考虑0x0000，因为它是空字节
-					// U+00000000 – U+0000007F  0xxxxxxx
-					res.push(str.charAt(i));
-				} else if (code >= 0x0080 && code <= 0x07FF) {
-					// 双字节
-					// U+00000080 – U+000007FF  110xxxxx 10xxxxxx
-					// 110xxxxx
-					var byte1 = 0xC0 | ((code >> 6) & 0x1F);
-					// 10xxxxxx
-					var byte2 = 0x80 | (code & 0x3F);
-					res.push(
-						String.fromCharCode(byte1), 
-						String.fromCharCode(byte2)
-					);
-				} else if (code >= 0x0800 && code <= 0xFFFF) {
-					// 三字节
-					// U+00000800 – U+0000FFFF  1110xxxx 10xxxxxx 10xxxxxx
-					// 1110xxxx
-					var byte1 = 0xE0 | ((code >> 12) & 0x0F);
-					// 10xxxxxx
-					var byte2 = 0x80 | ((code >> 6) & 0x3F);
-					// 10xxxxxx
-					var byte3 = 0x80 | (code & 0x3F);
-					res.push(
-						String.fromCharCode(byte1), 
-						String.fromCharCode(byte2), 
-						String.fromCharCode(byte3)
-					);
-				} else if (code >= 0x00010000 && code <= 0x001FFFFF) {
-					// 四字节
-					// U+00010000 – U+001FFFFF  11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-				} else if (code >= 0x00200000 && code <= 0x03FFFFFF) {
-					// 五字节
-					// U+00200000 – U+03FFFFFF  111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
-				} else /** if (code >= 0x04000000 && code <= 0x7FFFFFFF)*/ {
-					// 六字节
-					// U+04000000 – U+7FFFFFFF  1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
-				}
+	var BASE64_MAPPING = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '/'];
+	var _toBinary = function(ascii) {
+		var binary = new Array();
+		while (ascii > 0) {
+			var b = ascii % 2;
+			ascii = Math.floor(ascii / 2);
+			binary.push(b);
+		}
+		binary.reverse();
+		return binary;
+	};
+	var _toDecimal = function(binary) {
+		var dec = 0;
+		var p = 0;
+		for (var i = binary.length - 1; i >= 0; --i) {
+			var b = binary[i];
+			if (b == 1) {
+				dec += Math.pow(2, p);
 			}
-	 
-			return res.join('');
-		},
-		UTF8ToUTF16 : function(str) {
-			var res = [], len = str.length;
-			var i = 0;
-			for (var i = 0; i < len; i++) {
-				var code = str.charCodeAt(i);
-				// 对第一个字节进行判断
-				if (((code >> 7) & 0xFF) == 0x0) {
-					// 单字节
-					// 0xxxxxxx
-					res.push(str.charAt(i));
-				} else if (((code >> 5) & 0xFF) == 0x6) {
-					// 双字节
-					// 110xxxxx 10xxxxxx
-					var code2 = str.charCodeAt(++i);
-					var byte1 = (code & 0x1F) << 6;
-					var byte2 = code2 & 0x3F;
-					var utf16 = byte1 | byte2;
-					res.push(Sting.fromCharCode(utf16));
-				} else if (((code >> 4) & 0xFF) == 0xE) {
-					// 三字节
-					// 1110xxxx 10xxxxxx 10xxxxxx
-					var code2 = str.charCodeAt(++i);
-					var code3 = str.charCodeAt(++i);
-					var byte1 = (code << 4) | ((code2 >> 2) & 0x0F);
-					var byte2 = ((code2 & 0x03) << 6) | (code3 & 0x3F);
-					utf16 = ((byte1 & 0x00FF) << 8) | byte2
-					res.push(String.fromCharCode(utf16));
-				} else if (((code >> 3) & 0xFF) == 0x1E) {
-					// 四字节
-					// 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-				} else if (((code >> 2) & 0xFF) == 0x3E) {
-					// 五字节
-					// 111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
-				} else /** if (((code >> 1) & 0xFF) == 0x7E)*/ {
-					// 六字节
-					// 1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
-				}
-			}
-	 
-			return res.join('');
-		},
-		encode : function(str) {
-			if (!str) {
-				return '';
-			}
-			var utf8    = this.UTF16ToUTF8(str); // 转成UTF8
-			var i = 0; // 遍历索引
-			var len = utf8.length;
-			var res = [];
-			while (i < len) {
-				var c1 = utf8.charCodeAt(i++) & 0xFF;
-				res.push(this.table[c1 >> 2]);
-				// 需要补2个=
-				if (i == len) {
-					res.push(this.table[(c1 & 0x3) << 4]);
-					res.push('==');
-					break;
-				}
-				var c2 = utf8.charCodeAt(i++);
-				// 需要补1个=
-				if (i == len) {
-					res.push(this.table[((c1 & 0x3) << 4) | ((c2 >> 4) & 0x0F)]);
-					res.push(this.table[(c2 & 0x0F) << 2]);
-					res.push('=');
-					break;
-				}
-				var c3 = utf8.charCodeAt(i++);
-				res.push(this.table[((c1 & 0x3) << 4) | ((c2 >> 4) & 0x0F)]);
-				res.push(this.table[((c2 & 0x0F) << 2) | ((c3 & 0xC0) >> 6)]);
-				res.push(this.table[c3 & 0x3F]);
-			}
-	 
-			return res.join('');
-		},
-		decode : function(str) {
-			if (!str) {
-				return '';
-			}
-	 
-			var len = str.length;
-			var i   = 0;
-			var res = [];
-	 
-			while (i < len) {
-				code1 = this.table.indexOf(str.charAt(i++));
-				code2 = this.table.indexOf(str.charAt(i++));
-				code3 = this.table.indexOf(str.charAt(i++));
-				code4 = this.table.indexOf(str.charAt(i++));
-	 
-				c1 = (code1 << 2) | (code2 >> 4);
-				c2 = ((code2 & 0xF) << 4) | (code3 >> 2);
-				c3 = ((code3 & 0x3) << 6) | code4;
-	 
-				res.push(String.fromCharCode(c1));
-	 
-				if (code3 != 64) {
-					res.push(String.fromCharCode(c2));
-				}
-				if (code4 != 64) {
-					res.push(String.fromCharCode(c3));
-				}
-	 
-			}
-	 
-			return this.UTF8ToUTF16(res.join(''));
-		},
-		getObject: function(){
-			var objects = ['MSXML2.DOMDocument', 'Microsoft.XMLDOM'];
-			var object = null;
-			for ( var i = 0 ; i < objects.length ; i++ ){
-				try{
-					object = new ActiveXObject(objects[i]);
-					return object;
-				}catch(e){}
-			}
-		},
-		encodeFile: function(AboslutePath){
-			var object = this.getObject();
-			if ( object ){
-				var dom = object.createElement("tmpNode");
-					dom.dataType = "bin.base64";
-					dom.nodeTypedValue = fs(AboslutePath).exist().readBinary().fail(function(){ return ''; }).value();
-				
-				var text = dom.text;		
-				dom = null;
-					
-				return text;
-			}else{
-				return '';
-			}
-		},
-		decodeFile: function(bases, AboslutePath){
-			var object = this.getObject();
-			if ( object ){
-				var dom = object.createElement("tmpNode");
-					dom.dataType = "bin.base64";
-					dom.text = bases;
-					
-				var status;
-				
-				fs(AboslutePath).then(function(){
-					return dom.nodeTypedValue;
-				}).saveBinary(AboslutePath).then(function(){
-					status = true;
-				}).fail(function(){
-					status = false;
-				});
-				
-				dom = null;
-					
-				return status;
-			}else{
-				return false;
+			++p;
+		}
+		return dec;
+	};
+	var _toUTF8Binary = function(c, binaryArray) {
+		var mustLen = (8 - (c + 1)) + ((c - 1) * 6);
+		var fatLen = binaryArray.length;
+		var diff = mustLen - fatLen;
+		while (--diff >= 0) {
+			binaryArray.unshift(0);
+		}
+		var binary = [];
+		var _c = c;
+		while (--_c >= 0) {
+			binary.push(1);
+		}
+		binary.push(0);
+		var i = 0,
+		len = 8 - (c + 1);
+		for (; i < len; ++i) {
+			binary.push(binaryArray[i]);
+		}
+		for (var j = 0; j < c - 1; ++j) {
+			binary.push(1);
+			binary.push(0);
+			var sum = 6;
+			while (--sum >= 0) {
+				binary.push(binaryArray[i++]);
 			}
 		}
+		return binary;
 	};
+	var Base64 = {
+		encode: function(str) {
+			var base64_Index = [];
+			var binaryArray = [];
+			for (var i = 0, len = str.length; i < len; ++i) {
+				var unicode = str.charCodeAt(i);
+				var _tmpBinary = _toBinary(unicode);
+				if (unicode < 0x80) {
+					var _tmpdiff = 8 - _tmpBinary.length;
+					while (--_tmpdiff >= 0) {
+						_tmpBinary.unshift(0);
+					}
+					binaryArray = binaryArray.concat(_tmpBinary);
+				} else if (unicode >= 0x80 && unicode <= 0x7FF) {
+					binaryArray = binaryArray.concat(_toUTF8Binary(2, _tmpBinary));
+				} else if (unicode >= 0x800 && unicode <= 0xFFFF) {
+					binaryArray = binaryArray.concat(_toUTF8Binary(3, _tmpBinary));
+				} else if (unicode >= 0x10000 && unicode <= 0x1FFFFF) {
+					binaryArray = binaryArray.concat(_toUTF8Binary(4, _tmpBinary));
+				} else if (unicode >= 0x200000 && unicode <= 0x3FFFFFF) {
+					binaryArray = binaryArray.concat(_toUTF8Binary(5, _tmpBinary));
+				} else if (unicode >= 4000000 && unicode <= 0x7FFFFFFF) {
+					binaryArray = binaryArray.concat(_toUTF8Binary(6, _tmpBinary));
+				}
+			}
+			var extra_Zero_Count = 0;
+			for (var i = 0, len = binaryArray.length; i < len; i += 6) {
+				var diff = (i + 6) - len;
+				if (diff == 2) {
+					extra_Zero_Count = 2;
+				} else if (diff == 4) {
+					extra_Zero_Count = 4;
+				}
+				var _tmpExtra_Zero_Count = extra_Zero_Count;
+				while (--_tmpExtra_Zero_Count >= 0) {
+					binaryArray.push(0);
+				}
+				base64_Index.push(_toDecimal(binaryArray.slice(i, i + 6)));
+			}
+			var base64 = '';
+			for (var i = 0, len = base64_Index.length; i < len; ++i) {
+				base64 += BASE64_MAPPING[base64_Index[i]];
+			}
+			for (var i = 0, len = extra_Zero_Count / 2; i < len; ++i) {
+				base64 += '=';
+			}
+			return base64;
+		},
+		decode: function(_base64Str) {
+			var _len = _base64Str.length;
+			var extra_Zero_Count = 0;
+			if (_base64Str.charAt(_len - 1) == '=') {
+				if (_base64Str.charAt(_len - 2) == '=') {
+					extra_Zero_Count = 4;
+					_base64Str = _base64Str.substring(0, _len - 2);
+				} else {
+					extra_Zero_Count = 2;
+					_base64Str = _base64Str.substring(0, _len - 1);
+				}
+			}
+			var binaryArray = [];
+			for (var i = 0, len = _base64Str.length; i < len; ++i) {
+				var c = _base64Str.charAt(i);
+				for (var j = 0, size = BASE64_MAPPING.length; j < size; ++j) {
+					if (c == BASE64_MAPPING[j]) {
+						var _tmp = _toBinary(j);
+						var _tmpLen = _tmp.length;
+						if (6 - _tmpLen > 0) {
+							for (var k = 6 - _tmpLen; k > 0; --k) {
+								_tmp.unshift(0);
+							}
+						}
+						binaryArray = binaryArray.concat(_tmp);
+						break;
+					}
+				}
+			}
+			if (extra_Zero_Count > 0) {
+				binaryArray = binaryArray.slice(0, binaryArray.length - extra_Zero_Count);
+			}
+			var unicode = [];
+			var unicodeBinary = [];
+			for (var i = 0, len = binaryArray.length; i < len;) {
+				if (binaryArray[i] == 0) {
+					unicode = unicode.concat(_toDecimal(binaryArray.slice(i, i + 8)));
+					i += 8;
+				} else {
+					var sum = 0;
+					while (i < len) {
+						if (binaryArray[i] == 1) {++sum;
+						} else {
+							break;
+						}
+						++i;
+					}
+					unicodeBinary = unicodeBinary.concat(binaryArray.slice(i + 1, i + 8 - sum));
+					i += 8 - sum;
+					while (sum > 1) {
+						unicodeBinary = unicodeBinary.concat(binaryArray.slice(i + 2, i + 8));
+						i += 8; --sum;
+					}
+					unicode = unicode.concat(_toDecimal(unicodeBinary));
+					unicodeBinary = [];
+				}
+			}
+			var str = '';
+			for(var i = 0 , len =  unicode.length ; i < len ;++i){
+				str += String.fromCharCode(unicode[i]);
+			}
+			return str;
+		}
+	};
+	
+	Base64.getObject = function(){
+		var objects = ['MSXML2.DOMDocument', 'Microsoft.XMLDOM'];
+		var object = null;
+		for ( var i = 0 ; i < objects.length ; i++ ){
+			try{
+				object = new ActiveXObject(objects[i]);
+				return object;
+			}catch(e){}
+		}
+	};
+	
+	Base64.encodeFile = function(AboslutePath){
+		var object = this.getObject();
+		if ( object ){
+			var dom = object.createElement("tmpNode");
+				dom.dataType = "bin.base64";
+				dom.nodeTypedValue = fs(AboslutePath).exist().readBinary().fail(function(){ return ''; }).value();
+			
+			var text = dom.text;		
+			dom = null;
+				
+			return text;
+		}else{
+			return '';
+		}
+	}
+	
+	Base64.decodeFile = function(bases, AboslutePath){
+		var object = this.getObject();
+		if ( object ){
+			var dom = object.createElement("tmpNode");
+				dom.dataType = "bin.base64";
+				dom.text = bases;
+				
+			var status;
+			
+			fs(AboslutePath).then(function(){
+				return dom.nodeTypedValue;
+			}).saveBinary(AboslutePath).then(function(){
+				status = true;
+			}).fail(function(){
+				status = false;
+			});
+			
+			dom = null;
+				
+			return status;
+		}else{
+			return false;
+		}
+	}
 	
 	return Base64;
 });
