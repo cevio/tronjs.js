@@ -6,7 +6,7 @@
         return define([], mod);
     }
     else {
-        window.package = mod();
+        window.Pack = mod();
     }
 })(function () {
 	var object = new ActiveXObject('Adodb.Stream');
@@ -199,9 +199,9 @@
 			obj = null;
 	});
 	
-	var package = new Class();
-	package.pack = new pack;
-	package.unpack = new unpack;
+	var Pack = new Class();
+	Pack.pack = new pack;
+	Pack.unpack = new unpack;
 	
-	return package;
+	return Pack;
 });
