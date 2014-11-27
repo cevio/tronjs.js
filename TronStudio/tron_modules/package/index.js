@@ -11,16 +11,14 @@
 })(function () {
 	var Packs = new Class(function(){
 		this.object = new ActiveXObject('Adodb.Stream');
-		console.log(1)
+		this.fso = new ActiveXObject("Scripting.FileSystemObject");
 		this.fileListInfo = '';
-		console.log(1)
 	});
 	
 	// 执行打包操作
 	Packs.add('doPack', function( source, target ){
 		// 初始化对象
 		this.object.Type = 1; 
-		console.debug('ee是大逗逼');
 		this.object.Mode = 3; 
 		this.object.Open();
 		this.object.Position = 0;
@@ -50,9 +48,9 @@
 	
 	Packs.add('getFileList', function( dir ){
 		dir = dir.replace(/\\$/, '');
-		var folders = fs.dirList(dir, function( name ){ return dir + '\\' + name; }),
-			files = fs.fileList(dir, function( name ){ return dir + '\\' + name + '>' + this.Size; });
-		
+		var folders = fs(dir, true).exist().dirs(function( name ){ return dir + '\\' + name; }).then().fail().stop().value();
+		var files = this.fileList(dir, function( name ){ return dir + '\\' + name + '>' + this.Size; });
+
 		if ( files.length == 0 ){
 			this.fileListInfo += dir + '|';
 		}else{
@@ -66,6 +64,27 @@
 		}
 		
 		return files;
+	});
+	
+	Packs.add('fileList', function( fullpath, callback ){
+		var object = this.fso.GetFolder(fullpath),
+			arrs = object.Files,
+			emtor = new Enumerator(arrs),
+			names = [];
+		
+		for (; !emtor.atEnd(); emtor.moveNext()) {
+			var name = emtor.item().Name;
+			if ( typeof callback === 'function' ){
+				name = callback.call(emtor.item(), name);
+				if ( name ){
+					names.push(name);
+				}
+			}else{
+				names.push(name);
+			}
+		}
+		
+		return names;
 	});
 	
 	Packs.add('AppendFile', function( path ){
@@ -134,20 +153,20 @@
 		
 		var arr = headerText.split('|'), chunkDataLenth = 16 + Number(headerSize) + 1;
 		var root = target;
-		fs.autoCreateFolder(root);										// 创建根目录
+		this.autoCreateFolder(root);									// 创建根目录
 		for ( var i = 1 ; i < arr.length - 1; i++ ){
 			if (arr[i].indexOf('>') == -1) {
-				this.fs.autoCreateFolder(root + '\\' + arr[i]);			// 创建文件夹
+				this.autoCreateFolder(root + '\\' + arr[i]);			// 创建文件夹
 			}else{
 				var fileInfo = arr[i].split('>'),
 					fileName = fileInfo[0],//.replace(/\\/g, '/'),
 					fileSize = Number(fileInfo[1]),
 					filePath = root + '\\' + fileName;
 				
-				fs.autoCreateFolder(filePath.split('\\').slice(0, -1).join('\\'));   	// 先创建文件夹
+				this.autoCreateFolder(filePath.split('\\').slice(0, -1).join('\\'));   	// 先创建文件夹
 				
 				if( fileSize == 0) {
-					fso.CreateTextFile(filePath, true);			// 创建空文件
+					this.fso.CreateTextFile(filePath, true);			// 创建空文件
 				}else{		
 					this.SaveFile(chunkDataLenth, fileSize, filePath);	// 读取数据流并写入目标文件
 	
@@ -187,6 +206,21 @@
 			obj.SaveToFile(paths, 2);
 			obj.Close();
 			obj = null;
+	});
+	
+	Packs.add('autoCreateFolder', function( fullpath ){
+		var root = Server.MapPath('/'),
+			path = fullpath.replace(root, ''),
+			arrs = path.replace(/^\\/, '').split('\\');
+			
+		for ( var i = 0 ; i < arrs.length ; i++ ){
+			root += '\\' + arrs[i];
+			if ( !this.fso.FolderExists(root) ){
+				this.fso.CreateFolder(root);
+			}
+		}
+		
+		return this.fso.FolderExists(fullpath);
 	});
 		
 	return Packs;
