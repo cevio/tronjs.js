@@ -11,38 +11,26 @@
 })(function ( $ ) {
 	var server = false;
 	if ( !$ ){
-		var jQuery = $ = {};
-		$.isFunction = function(fn){
-			return typeof fn === 'function';
-		}
-		$.isArray = function(fn){
-			return typeof fn === 'array';
-		}
-		server = true;
+		var jQuery = $ = {}, server = true;
+		$.isFunction = function(fn){ return typeof fn === 'function'; }
+		$.isArray = function(fn){ return typeof fn === 'array'; }
 		var hasOwnProperty  = Object.prototype.hasOwnProperty,  
-				  toString = Object.prototype.toString,
-				  isPlainObject = function(obj){  
-					//!obj ---一定要是对象  
-					// toString.call(obj) !== "[object Object]"----因为IE，检测constructor  
-					//obj.nodeType ----避免不是DOM nodes  
-					//obj.setInterval ---排除window  
-				   if(!obj || toString.call(obj) !== "[object Object]" ||obj.nodeType ||obj.setInterval){  
-							return false;  
-				   }  
-				   //是否是new fun()自定义对象  
-				   //constructor是否是继承原型链  
-				   //原型链是否有isPrototypeOf  
-				   if(obj.constructor && !hasOwnProperty.call(obj,"constructor")  
-					   && !hasOwnProperty.call(obj.constructor.prototype,"isPrototypeOf")){  
-						 return false;  
-				   }  
-				   //判断是否有继承关系  
-				   //自己的属性会被首先遍历  
-					var key;  
-					for(key in obj){}  
-					//直接看最后一项是未了加速遍历的过程  
-					return key === undefined || hasOwnProperty.call(obj,key);  
+			toString = Object.prototype.toString,
+			isPlainObject = function(obj){  
+				if(!obj || toString.call(obj) !== "[object Object]" ||obj.nodeType ||obj.setInterval){  
+					return false;  
 				}  
+ 
+				if(obj.constructor && !hasOwnProperty.call(obj,"constructor")  
+				   && !hasOwnProperty.call(obj.constructor.prototype,"isPrototypeOf")){  
+					 return false;  
+				}
+				
+				var key;  
+				for(key in obj){}    
+				return key === undefined || hasOwnProperty.call(obj,key);  
+			};
+			
 		$.isPlainObject = isPlainObject;
 		$.extend = function (){
 			var target = arguments[0] || {},      
@@ -92,40 +80,42 @@
 				return target;  
 		};
 		var document = {};
+	}else{
+		var jQuery = $;
 	}
-	
+
 	var pluses = /\+/g;
 
 	function encode(s) {
-			return config.raw ? s : encodeURIComponent(s);
+		return config.raw ? s : encodeURIComponent(s);
 	}
 
 	function decode(s) {
-			return config.raw ? s : decodeURIComponent(s);
+		return config.raw ? s : decodeURIComponent(s);
 	}
 
 	function stringifyCookieValue(value) {
-			return encode(config.json ? JSON.stringify(value) : String(value));
+		return encode(config.json ? JSON.stringify(value) : String(value));
 	}
 
 	function parseCookieValue(s) {
-			if (s.indexOf('"') === 0) {
-					// This is a quoted cookie as according to RFC2068, unescape...
-					s = s.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
-			}
+		if (s.indexOf('"') === 0) {
+				// This is a quoted cookie as according to RFC2068, unescape...
+				s = s.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+		}
 
-			try {
-					// Replace server-side written pluses with spaces.
-					// If we can't decode the cookie, ignore it, it's unusable.
-					// If we can't parse the cookie, ignore it, it's unusable.
-					s = decodeURIComponent(s.replace(pluses, ' '));
-					return config.json ? JSON.parse(s) : s;
-			} catch(e) {}
+		try {
+				// Replace server-side written pluses with spaces.
+				// If we can't decode the cookie, ignore it, it's unusable.
+				// If we can't parse the cookie, ignore it, it's unusable.
+				s = decodeURIComponent(s.replace(pluses, ' '));
+				return config.json ? JSON.parse(s) : s;
+		} catch(e) {}
 	}
 
 	function read(s, converter) {
-			var value = config.raw ? s : parseCookieValue(s);
-			return $.isFunction(converter) ? converter(value) : value;
+		var value = config.raw ? s : parseCookieValue(s);
+		return $.isFunction(converter) ? converter(value) : value;
 	}
 
 	var config = $.cookie = function (key, value, options) {
@@ -138,22 +128,24 @@
 							var days = options.expires, t = options.expires = new Date();
 							t.setDate(t.getDate() + days);
 					}
-
-					var c = (document.cookie = [
+					
+					var c = [
 							encode(key), '=', stringifyCookieValue(value),
-							options.expires ? '; expires=' + options.expires.toUTCString() : '', // use expires attribute, max-age is not supported by IE
+							options.expires ? '; expires=' + options.expires.toUTCString() : '',
 							options.path    ? '; path=' + options.path : '',
 							options.domain  ? '; domain=' + options.domain : '',
 							options.secure  ? '; secure' : ''
-					].join(''));
-					
+					].join('');
+
 					if ( server ){
 						c = c.replace(/\;$/, '');
 						c += "; HttpOnly";
 						Response.AddHeader("Set-Cookie", c);
-					}
-					
-					return c;
+						return c;
+					}else{
+						window.document.cookie = c;
+						return c;
+					};
 			}
 
 			// Read
