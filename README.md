@@ -97,4 +97,36 @@ TronJS能加载几乎99.99%的国际AMD规范插件和框架。TronASP同样能�
 	// 同时你需要注意，我们的tron_modules文件夹必须放在基址的myweb/blog/文件夹下面
 ```
 
-  [1]: https://github.com/jakearchibald/es6-promise        "Promise"
+然后引用我们的组件，注意，组件的映射是采用跟nodejs一样的选择方式。首先会选择`tron_modules`文件夹中的组件，在采用相对或者绝对地址。
+
+```javascript
+	var a = require('cookie');
+	a.cookie('a', 'tronasp');
+```
+
+### TronASP : define module
+
+模块中有这么写参数  require exports module __filename __dirname contrast resolve
+
+这里我就不一一介绍了，基本和nodejs的一样。我们来看一个列子
+
+```javascript
+	var a = new Class(function(b){
+		this.b = b;
+	});
+	
+	module.exports = a;
+```
+
+调用：
+
+```javascript
+	var a = require('a');
+	var b = new a(3);
+	console.log(b.b);
+	// ouput: 3
+```
+
+基本我们介绍完毕，请前往主要的文档进行参考。
+
+  [1]: https://github.com/jakearchibald/es6-promise "Promise"
