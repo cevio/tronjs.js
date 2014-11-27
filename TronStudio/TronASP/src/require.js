@@ -26,10 +26,6 @@
 			return selector;
 		}
 		
-		if ( modules.maps[selector] ){
-			selector = modules.maps[selector];
-		}
-		
 		selector = selector.replace(/\//g, '\\');
 		var host = modules.host,
 			base = modules.base,
