@@ -242,6 +242,7 @@
 						stream.Close();
 					
 					this.resolve();
+					stream = null;
 					return text;
 				}catch(e){
 					this.reject();
@@ -266,7 +267,41 @@
 					stream.Close();
 				
 				this.resolve();	
+				stream = null;
 				return ret;
+			}
+		});
+	});
+	
+	fso.add('saveBinary', function(AbsolutePath){
+		return this.then(function(){
+			if ( this.contexts.type ){
+				this.reject();
+			}else{
+				var stream = new ActiveXObject("Adodb.Stream");
+					
+					stream.Type = 1;
+					stream.Open();
+					stream.Write(this._value);
+					stream.Position = 0;
+					stream.SaveToFile(AbsolutePath ? AbsolutePath : this.contexts.path, 2);
+					stream.Close();
+				
+				if ( AbsolutePath ){
+					if ( object.FileExists(AbsolutePath) ){
+						this.resolve();
+					}else{
+						this.reject();
+					}
+				}else{
+					if ( object.FileExists(this.contexts.path) ){
+						this.resolve();
+					}else{
+						this.reject();
+					}
+				}
+				
+				stream = null;
 			}
 		});
 	});

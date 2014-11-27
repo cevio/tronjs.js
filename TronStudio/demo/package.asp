@@ -2,5 +2,5 @@
 <%
 modules.setBase('TronStudio');
 var package = require('package');
-console.log(typeof package);
+console.log(new package().a);
 %>

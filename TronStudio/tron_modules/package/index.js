@@ -12,6 +12,8 @@
 	
 	var package = new Class();
 	
+	package.add('a', 1)
+	
 	// code here.
 	
 	return package;
