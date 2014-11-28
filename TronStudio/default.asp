@@ -19,5 +19,10 @@ var iPress;
 
 	// 渲染页面iPress对象
 	iPress.render();
+	
+	if ( iPress.error > 0 ){
+		Response.clear();
+		console.log(iPress.errors[iPress.error + '']);
+	}
 })();
 %>

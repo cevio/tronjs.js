@@ -98,11 +98,9 @@
 		return outTokens;
 	});
 	
-	// 渲染页面
-	iPress.add('render', function(){
+	iPress.add('compile', function(mods){
 		var token = this.token;
-		var PathModule = this.iControler.get(token.controler, token.views);
-		var that = this;
+		var PathModule = mods || this.iControler.get(token.controler, token.views);
 		
 		var Event = this.iEvent.get(token.controler);
 		
@@ -112,11 +110,11 @@
 		
 		var PageServiceModule = null;
 		
-		if ( PathModule[1] ){
-			 fs(PathModule[1])
+		if ( PathModule.compile && PathModule.compile.length > 0 ){
+			 fs(PathModule.compile)
 			.exist()
 			.then(function(){
-				var PageService = require(PathModule[1]),
+				var PageService = require(PathModule.compile),
 					FormRequest = function(){
 						var Requests = {};
 						http.emit(Request.Form, function(name){
@@ -127,21 +125,50 @@
 					};
 				PageServiceModule = new PageService(token.searchers, FormRequest);
 			});
+		};
+		
+		return PageServiceModule;
+	})
+	
+	// 渲染页面
+	iPress.add('render', function(){
+		var token = this.token;
+		var PathModule = this.iControler.get(token.controler, token.views);
+		var that = this;
+		var PageServiceModule = null;
+		
+		// 编译为HTML
+		if ( PathModule.type === 'html' ){
+			 fs(PathModule.page)
+			.exist()
+			.fail(function(){
+				that.error = 404;
+			})
+			.then(function(){
+				PageServiceModule = that.compile(PathModule);
+				if ( PageServiceModule ){
+					include(PathModule.page, PageServiceModule);
+				}else{
+					include(PathModule.page);
+				}
+			})
+			.stop();
 		}
-
-		 fs(PathModule[0])
-		.exist()
-		.fail(function(){
-			that.error = 404;
-		})
-		.then(function(){
+		
+		// 编译为JSON
+		else if ( type === 'json' ){
+			PageServiceModule = that.compile(PathModule);
 			if ( PageServiceModule ){
-				include(PathModule[0], PageServiceModule);
+				console.json(PageServiceModule);
 			}else{
-				include(PathModule[0]);
+				this.error = 500;
 			}
-		})
-		.stop();
+		}
+		
+		// 编译为文本
+		else{
+			console.log(that.compile(PathModule));
+		}
 	});
 	
 	/*
@@ -153,12 +180,12 @@
 		this.map = {};
 	});
 
-	iControler.add('set', function( C, V, P, S ){
+	iControler.add('set', function( C, V, P, S, T ){
 		if ( !V && readVariableType(C, 'string') ){
 			var maps = require(C);
 			for ( var i in maps ){
 				for ( var j in maps[i] ){
-					this.set(i, j, maps[i][j][0], maps[i][j][1]);
+					this.set(i, j, maps[i][j].page, maps[i][j].compile, maps[i][j].type);
 				}
 			}
 		}else{
@@ -166,11 +193,17 @@
 				this.map[C] = {};
 			};
 			if ( !this.map[C][V] ){
-				if ( S ){
-				this.map[C][V] = [P, S];
-				}else{
-					this.map[C][V] = [P];
+				var CompileList = {};
+				if ( P ){
+					CompileList.page = P;
 				}
+				if ( S ){
+					CompileList.compile = S;
+				}
+				if ( T ){
+					CompileList.type = T;
+				}
+				this.map[C][V] = CompileList;
 			}
 		}
 	});

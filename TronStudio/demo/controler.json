@@ -1,6 +1,14 @@
 {
 	page: {
-		home: [contrast('page/views/home.asp'), resolve('page/compile/home.js')],
-		article: [contrast('page/views/article.asp'), resolve('page/compile/article.js')]
+		home: {
+			page: contrast('page/views/home.asp'),
+			compile: resolve('page/compile/home.js'),
+			type: 'html'
+		},
+		article: {
+			page: contrast('page/views/article.asp'),
+			compile: resolve('page/compile/article.js'),
+			type: 'html'
+		}
 	}
 }
