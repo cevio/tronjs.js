@@ -116,8 +116,11 @@
 			 fs(PathModule[1])
 			.exist()
 			.then(function(){
-				var PageService = require(PathModule[1]);
-				PageServiceModule = new PageService(token.searchers);
+				var PageService = require(PathModule[1]),
+					FormRequest = function(){
+						return http.emit(Request.Form);
+					};
+				PageServiceModule = new PageService(token.searchers, FormRequest);
 			});
 		}
 
