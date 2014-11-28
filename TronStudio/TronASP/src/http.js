@@ -63,6 +63,8 @@
 		return _ret;
 	};
 	
+	Http.add('emit', emit);
+	
 	var Ajax = new Class(function(){
 		this.object = new ActiveXObject("Microsoft.XMLHTTP");
 	});
