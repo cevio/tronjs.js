@@ -1,5 +1,6 @@
 {
 	page: {
-		home: [contrast('page/views/home.asp'), resolve('page/compile/home.js')]
+		home: [contrast('page/views/home.asp'), resolve('page/compile/home.js')],
+		article: [contrast('page/views/article.asp'), resolve('page/compile/article.js')]
 	}
 }

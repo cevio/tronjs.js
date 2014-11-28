@@ -1,14 +1,14 @@
 <!--#include file="TronASP/dist/tron.asp" -->
 <%
 //http://tron.cn/tronstudio/?page:@detail-id(21)-page(23).html
-
+var iPress;
 ;(function(){
 	modules.setBase('TronStudio');
 	// 获取iPress主框架
 	var iPressModule = require('iPress');
 
 	// 创建iPress对象实例
-	var iPress = new iPressModule();
+	iPress = new iPressModule();
 
 	// 扩展iControler对象为自定义方法
 	//iPress.iControler.set('page', 'home', contrast('page/views/home.asp'), resolve('page/compile/home.js'));
