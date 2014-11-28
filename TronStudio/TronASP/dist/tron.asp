@@ -1462,7 +1462,11 @@ console.debug = function( logs ){
 			for ( var i = 0 ; i < value.length ; i++ ){
 				if ( readVariableType(value[i], 'string') ){
 					inArray.push("'" + value[i] + "'");
-				}else{
+				}
+				else if ( readVariableType(value[i], 'date') ){
+					inArray.push("'" + date.format(value[i], 'y/m/d h:i:s') + "'");
+				}
+				else{
 					inArray.push(value[i]);
 				}
 			};
@@ -1471,7 +1475,10 @@ console.debug = function( logs ){
 		else{
 			if ( readVariableType(value, 'string') ){
 				value = "'" + value + "'";
-			};
+			}
+			else if ( readVariableType(value, 'date') ){
+				value = "'" + date.format(value, 'y/m/d h:i:s') + "'";
+			}
 			
 			return key + compare + value;
 		}
