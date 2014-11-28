@@ -12,7 +12,7 @@ var iPress;
 
 	// 扩展iControler对象为自定义方法
 	//iPress.iControler.set('page', 'home', contrast('page/views/home.asp'), resolve('page/compile/home.js'));
-	iPress.iControler.set(contrast('controler.json'));
+	iPress.iControler.set(contrast('demo/controler.json'));
 	iPress.iEvent.set('page', function(){
 		return true;
 	});

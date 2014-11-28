@@ -1,6 +1,0 @@
-{
-	page: {
-		home: [contrast('demo/page/views/home.asp'), resolve('demo/page/compile/home.js')],
-		article: [contrast('demo/page/views/article.asp'), resolve('demo/page/compile/article.js')]
-	}
-}
