@@ -118,7 +118,12 @@
 			.then(function(){
 				var PageService = require(PathModule[1]),
 					FormRequest = function(){
-						return http.emit(Request.Form);
+						var Requests = {};
+						http.emit(Request.Form, function(name){
+							var value = http.emit(Request.Form(name));
+							Requests[name] = value && value.length > 1 ? value : value[0];
+						});
+						return Requests;
 					};
 				PageServiceModule = new PageService(token.searchers, FormRequest);
 			});
