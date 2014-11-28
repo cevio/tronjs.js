@@ -924,7 +924,7 @@ console.debug = function( logs ){
 		return ret ? ret : service;
 	});
 	
-	Http.add('query', function(params){
+	Http.add('query', function(params, callback){
 		var queryEmtor = emit(Request.QueryString(params), callback);
 		if ( queryEmtor.length === 0 ){
 			return;
@@ -932,7 +932,7 @@ console.debug = function( logs ){
 		return queryEmtor.length === 1 ? queryEmtor[0] : (queryEmtor.length === 0 ? '' : queryEmtor);
 	});
 	
-	Http.add('form', function(params){
+	Http.add('form', function(params, callback){
 		var formEmtor = emit(Request.Form(params), callback);
 		if ( formEmtor.length === 0 ){
 			return;
