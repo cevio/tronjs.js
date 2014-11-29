@@ -1229,6 +1229,19 @@ console.debug = function( logs ){
 		return this;
 	});
 	
+	dbo.add('toJSON', function(){
+		var keep = [];
+		this.open().each(function(object){
+			var json = {};
+			for ( var i = 0; i < object.fields.count ; i++ ) {
+				json[object.fields(i).name] = object.fields(i).value;
+			}
+			keep.push(json);
+		}).close();
+		
+		return keep;
+	});
+	
 	dbo.add('close', function(){
 		try{
 			this.object.Close();
