@@ -65,8 +65,6 @@
 		
 		this.resetSQL();							// 初始化SQL
 		this.table(table);
-		
-		DBOMAPS[table] = this;						// 缓存表操作对象
 	});
 	
 	dbo.add('getFields', function(){
