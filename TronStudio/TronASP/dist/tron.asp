@@ -1160,12 +1160,8 @@ console.debug = function( logs ){
 	});
 
 	var AR = 'ADODB.RECORDSET';
-	var DBOMAPS = {};
 	
 	dbo = new Class(function( table, conn ){
-		if ( DBOMAPS[table] ){
-			return DBOMAPS[table];
-		}
 		
 		this.tables = table;						// 表名
 		this.conn = conn;							// 数据库连接对象
