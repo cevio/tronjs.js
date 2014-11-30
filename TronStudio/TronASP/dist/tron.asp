@@ -1304,8 +1304,15 @@ console.debug = function( logs ){
 	var sql = new Class();
 	
 	sql.add('resetSQL', function(){
+		var table = '';
+		if ( this.sql ){
+			table = this.sql.table;
+		}
 		this.sql = {};
 		this.sql.where = '';
+		if ( table && table.length > 0 && table.toLowerCase() !== 'undefined' ){
+			this.table(table);
+		};
 		return this;
 	});
 	
