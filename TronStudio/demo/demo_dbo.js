@@ -1,9 +1,10 @@
-var configs = {
+/*var configs = {
 	netserver: '192.168.1.11',
 	access: 'Test',
 	username: 'sa',
 	password: 'viewalloc'
-};
+};*/
+var configs = {"netserver":".","access":"blog","username":"evio","password":"1094872"};
 
 function randoms(l){
 	var x = "123456789poiuytrewqasdfghjklmnbvcxzQWERTYUIPLKJHGFDSAZXCVBNM";
@@ -111,7 +112,7 @@ cmd.add('destory', function(){
 
 //table, alters, param, orderby, _orderby, pagesize, pageindex, callback , up
 // 表	   字段    条件	 正排序     反排序		每页数		当前页
-var page = new Class(function(table, conn){
+/*var page = new Class(function(table, conn){
 	this.sql = {};
 	this.sql.table = table;
 	this.sql.order = [];
@@ -296,16 +297,50 @@ page.add('close', function(){
 	}catch(e){}
 	
 	return this;
-});
+});*/
 
 var connects = new connect('mssql', configs);
 var sha1 = require('sha1');
 if ( connects ){	
-	var P = new page('evio', connects);
+	//var P = new page('evio', connects);
 	
-	P.size(10).index(40).select('age', 'name', 'mail', 'hashkey', 'salt').where('age>50').order('age', true).order('id').open().each(function(object){
+	/*P.size(10).index(40).select('age', 'name', 'mail', 'hashkey', 'salt').where('age>50').order('age', true).order('id').open().each(function(object){
 		console.log(object(0).value, '<br />')
-	}).close();
+	}).close();*/
+/*	var _ = new sql();
+	_.resetSQL()
+		.table(function(){
+			this.resetSQL().and('a', 1).or('c', 6).table(function(){
+				this.resetSQL().and('a', 1).or('c', 6).table('evio').select('a', 'b').and('c', 6).asc('y')
+		.desc('x')
+			}).selectAll().as('T')
+		})
+		.as('B')
+		.top(10)
+		.select('count(id)')
+		.and('age', 50, '>')
+		.or('id', 1000, '>')
+		.and('name', 'evio')
+		.ands(function(){
+			this.and('a', 1).or('c', 6)
+		})
+		.asc('y')
+		.desc('x')
+		.gruntSQL();
+	console.log(_.sql.text)*/
+	
+	var p = new page('blog_categorys', connects);
+	
+	p.size(1).index(9).parse({
+		where: [
+			/*['and', 'cate_outlink', 0],
+			['and', 'cate_order', 1, '>']*/
+		],
+		order: [
+			['asc', 'id']
+		],
+		selectors: ['id', 'cate_name', 'cate_des', 'cate_count', 'cate_parent', 'cate_src', 'cate_outlink', 'cate_isroot', 'cate_order', 'cate_icon']
+	});
 
 }else{
 	exports.error = 404;

@@ -20,7 +20,19 @@ var __filename = Server.MapPath(Request.ServerVariables("SCRIPT_NAME")),
 	resolve,						// 模块转换路径模块的具体方法
 	include;						// 模板加载方法
 
-var Class, console, modules, task, fs, date, http, ajax, connect, dbo;
+var Class, 							// 系统Class类定义
+	console, 						// 系统调试输出类定义
+	modules, 						// 系统模块类定义
+	task, 							// 系统任务类定义
+	fs, 							// 系统文件操作类定义
+	date, 							// 系统日期类定义
+	http, 							// 系统环境变量类定义
+	ajax, 							// 系统请求类定义
+	connect, 						// 系统数据库连接类定义
+	dbo, 							// 系统数据库操作类定义
+	sql, 							// 系统SQL语句生成类定义
+	page, 							// 系统分类类定义
+	cmd;							// 系统存储过程调用类定义
 	
 var JSON = function(){
 	return JSON.stringify.apply(JSON, arguments);
@@ -1294,16 +1306,23 @@ console.debug = function( logs ){
 			return [];
 		}
 	});
-	
-	var sql = new Class();
+
+/*
+ *	SQL 语句生成类
+ *	evio
+ */	
+	sql = new Class();
 	
 	sql.add('resetSQL', function(){
 		var table = '';
 		if ( this.sql ){
-			table = this.sql.table;
+			table = this.sql.tableText;
 		}
 		this.sql = {};
-		this.sql.where = '';
+		this.sql.where = [];
+		this.sql.whereText = '';
+		this.sql.table = '';
+		this.sql.tableText = '';
 		if ( table && table.length > 0 && table.toLowerCase() !== 'undefined' ){
 			this.table(table);
 		};
@@ -1333,31 +1352,52 @@ console.debug = function( logs ){
 	});
 	
 	sql.add('where', function( str ){
-		this.sql.where = str;
+		this.sql.whereText = str;
 		return this;
 	});
 	
 	sql.add('table', function( str ){
-		this.sql.table = str;
+		if ( typeof str === 'function' ){
+			var _sql = new Class();
+				_sql.extend(sql);
+				
+			var sqls = new _sql();
+				sqls.resetSQL();
+
+			str.call(sqls, this.sql.tableText);
+			
+			sqls.gruntSQL();
+
+			this.sql.tableText = sqls.sql.text;
+		}else{
+			this.sql.tableText = str;
+		}
+		return this;
+	});
+	
+	sql.add('as', function(name){
+		this.sql.as = name;
 		return this;
 	});
 	
 	sql.add('and', function(key, value, compare){
-		if ( this.sql.where.length === 0 ){
-			this.sql.where += GruntKeyValue(key, value, compare);
-		}else{
-			this.sql.where += ' AND ' + GruntKeyValue(key, value, compare);
-		}
+		this.sql.where.push({
+			key: key,
+			value: value,
+			compare: compare,
+			toggle: 'AND'
+		});
 		
 		return this;
 	});
 	
 	sql.add('or', function( key, value, compare ){
-		if ( this.sql.where.length === 0 ){
-			this.sql.where += GruntKeyValue(key, value, compare);
-		}else{
-			this.sql.where += ' OR ' + GruntKeyValue(key, value, compare);
-		}
+		this.sql.where.push({
+			key: key,
+			value: value,
+			compare: compare,
+			toggle: 'OR'
+		});
 		
 		return this;
 	});
@@ -1368,18 +1408,21 @@ console.debug = function( logs ){
 			
 		var sqls = new _sql();
 			sqls.resetSQL();
+			sqls.sql.targetTable = this.sql.table;
+			sqls.sql.targetAs = this.sql.as;
 		
 		if ( typeof callback === 'function' ){
-			callback.call(sqls);
+			callback.call(sqls, this.sql.table);
 		}
 		
 		sqls.gruntSQL();
 		
-		if ( this.sql.where.length === 0 ){
-			this.sql.where += '(' + sqls.sql.text + ')';
-		}else{
-			this.sql.where += ' AND (' + sqls.sql.text + ')';
-		}
+		var sqlText = sqls.sql.text;
+
+		this.sql.where.push({
+			text: '(' + sqlText + ')',
+			toggle: 'AND'
+		});
 		
 		return this;
 	});
@@ -1390,18 +1433,21 @@ console.debug = function( logs ){
 			
 		var sqls = new _sql();
 			sqls.resetSQL();
+			sqls.sql.targetTable = this.sql.table;
+			sqls.sql.targetAs = this.sql.as;
 		
 		if ( typeof callback === 'function' ){
-			callback.call(sqls);
+			callback.call(sqls, this.sql.table);
 		}
 		
 		sqls.gruntSQL();
 		
-		if ( this.sql.where.length === 0 ){
-			this.sql.where += '(' + sqls.sql.text + ')';
-		}else{
-			this.sql.where += ' OR (' + sqls.sql.text + ')';
-		}
+		var sqlText = sqls.sql.text;
+		
+		this.sql.where.push({
+			text: '(' + sqlText + ')',
+			toggle: 'OR'
+		});
 		
 		return this;
 	});
@@ -1410,7 +1456,12 @@ console.debug = function( logs ){
 		if ( !this.sql.order || this.sql.order.length === 0 ){
 			this.sql.order = [];
 		};
-		this.sql.order.push(params + ' ASC');
+		
+		this.sql.order.push({
+			param: params,
+			type: 'ASC'
+		});
+		
 		return this;
 	});
 	
@@ -1418,56 +1469,122 @@ console.debug = function( logs ){
 		if ( !this.sql.order || this.sql.order.length === 0 ){
 			this.sql.order = [];
 		};
-		this.sql.order.push(params + ' DESC');
+		
+		this.sql.order.push({
+			param: params,
+			type: 'DESC'
+		});
+		
 		return this;
+	});
+	
+	sql.add('toggleParams', function(params, type){
+		var _ = [], that = this;
+		params.forEach(function(o){
+			if ( type === 'selector' ){
+				if ( o === '*' || /count\([^\)]*?\)/i.test(o) ){
+					_.push(o);
+				}else{
+					if ( that.sql.as && that.sql.as.length > 0 ){
+						_.push(that.sql.as + '.[' + o + ']');
+					}else{
+						_.push('[' + o + ']');
+					}
+				}
+			}
+		});
+		return _;
+	});
+
+	sql.add('toggleWhere', function(made){
+		var keepWhere = [], that = this;
+		this.sql.where.forEach(function(o, i){
+			if ( o.text && o.text.length > 0 ){
+				if ( i === 0 ){
+					keepWhere.push(o.text);
+				}else{
+					keepWhere.push(o.toggle + ' ' + o.text);
+				};
+			}else{
+				//console.log(o.key, o.value, o.compare, made, '<br />')
+				var p = that.GruntKeyValue(o.key, o.value, o.compare, made);
+				if ( i === 0 ){
+					keepWhere.push(p);
+				}else{
+					keepWhere.push(o.toggle + ' ' + p);
+				}
+			}
+		});
+		this.sql.whereText = keepWhere.join(' ');
 	});
 	
 	sql.add('gruntSQL', function(){
-		var datSQL = [];
-		if ( this.sql.table && this.sql.table.length > 0 && this.sql.selectors && this.sql.selectors.length > 0 ){
-			datSQL.push('SELECT');
-			if ( this.sql.top && this.sql.top > 0 ){
-				datSQL.push('TOP ' + this.sql.top);
-			};
-			if ( this.sql.selectors && this.sql.selectors.length > 0 ){
-				datSQL.push(this.sql.selectors.join(','));
-			};
-			datSQL.push('FROM ' + this.sql.table);
+		var toggleSQLText = [], that = this;
+		
+		if ( this.sql.tableText && this.sql.tableText.length > 0 && this.sql.selectors && this.sql.selectors.length > 0 ){
+			toggleSQLText.push('SELECT');
 			
-			if ( this.sql.where.length > 0 ){
-				datSQL.push('WHERE');
-				datSQL.push(this.sql.where);
+			// 设定TOP参数
+			if ( this.sql.top && this.sql.top > 0 ){
+				toggleSQLText.push('TOP ' + this.sql.top);
+			};
+			
+			// 设定选择范围
+			if ( this.sql.selectors && this.sql.selectors.length > 0 ){
+				toggleSQLText.push(this.toggleParams(this.sql.selectors, 'selector').join(','));
+			};
+			
+			// 设定表名
+			if ( this.sql.tableText.split(' ').length > 1 ){
+				toggleSQLText.push('FROM (' + this.sql.tableText + ')' + ( this.sql.as && this.sql.as.length > 0 ? ' AS ' + this.sql.as : '' ));
+			}else{
+				toggleSQLText.push('FROM [' + this.sql.tableText + ']' + ( this.sql.as && this.sql.as.length > 0 ? ' AS ' + this.sql.as : '' ));
 			}
+
+			// 设定条件
+			if ( this.sql.where.length > 0 && this.sql.whereText.length === 0 ){
+				toggleSQLText.push('WHERE');
+				this.toggleWhere();
+				toggleSQLText.push(this.sql.whereText);
+			}else{
+				if ( this.sql.whereText.length > 0 ){
+					toggleSQLText.push('WHERE');
+					toggleSQLText.push(this.sql.whereText);
+				}
+			}
+			
+			// 设定排序
 			if ( this.sql.order && this.sql.order.length > 0 ){
-				datSQL.push('ORDER BY')
-				datSQL.push(this.sql.order.join(','));
+				toggleSQLText.push('ORDER BY');
+				var ods = [];
+				this.sql.order.forEach(function(o){
+					if ( that.sql.as && that.sql.as.length > 0 ){
+						ods.push(that.sql.as + '.[' + o.param + '] ' + o.type);
+					}else{
+						ods.push('[' + o.param + '] ' + o.type);
+					}
+				});
+				toggleSQLText.push(ods.join(','));
 			};
 		}else{
-			datSQL.push(this.sql.where);
+			if ( this.sql.where.length > 0 && this.sql.whereText.length === 0 ){
+				this.toggleWhere(true);
+				toggleSQLText.push(this.sql.whereText);
+			}else{
+				if ( this.sql.whereText.length > 0 ){
+					toggleSQLText.push(this.sql.whereText);
+				}
+			}
 		}
 	
-		this.sql.text = datSQL.join(' ');
+		this.sql.text = toggleSQLText.join(' ');
 		return this;
 	});
 	
-	function unique(arr){
-		var obj = {};
-		var ret = [];
-	
-		for ( var i = 0, len = arr.length; i < len; i++ ) {
-			var item = arr[i];
-			if ( obj[item] !== 1 ){
-			  obj[item] = 1;
-			  ret.push(item);
-			}
-		}
-	
-		return ret;
-	};
-	
-	function GruntKeyValue(key, value, compare){
+	sql.add('GruntKeyValue', function(key, value, compare, made){
 		if ( !compare ){ compare = '='; }
 		compare = compare.toLowerCase();
+		var ret = '';
 		if ( compare === 'in' ){
 			if ( !readVariableType(value, 'array') ){
 				value = [value];
@@ -1484,7 +1601,16 @@ console.debug = function( logs ){
 					inArray.push(value[i]);
 				}
 			};
-			return key + ' IN ' + '(' + inArray.join(',') + ')';
+
+			if ( this.sql.as && this.sql.as.length > 0 ){
+				ret = this.sql.as + '.[' + key + ']' + ' IN ' + '(' + inArray.join(',') + ')';
+			}else{
+				if ( made && this.sql.targetAs ){
+					ret = this.sql.targetAs + '.[' + key + '] IN ' + '(' + inArray.join(',') + ')';
+				}else{
+					ret = '[' + key + '] IN ' + '(' + inArray.join(',') + ')';
+				}
+			}
 		}
 		else{
 			if ( readVariableType(value, 'string') ){
@@ -1493,10 +1619,151 @@ console.debug = function( logs ){
 			else if ( readVariableType(value, 'date') ){
 				value = "'" + date.format(value, 'y/m/d h:i:s') + "'";
 			}
-			
-			return key + compare + value;
+
+			if ( this.sql.as && this.sql.as.length > 0 ){
+				ret = this.sql.as + '.[' + key + ']' + compare + value;
+			}else{
+				if ( made && this.sql.targetAs ){
+					ret = this.sql.targetAs + '.[' + key + ']' + compare + value;
+				}else{
+					ret = '[' + key + ']' + compare + value;
+				}
+			}
 		}
-	}
+		
+		return ret;
+	});
+
+/*
+ * 双TOP分页类
+ */
+	page = new Class(function(table, conn){
+		this.sql = {};
+		this.object = new ActiveXObject( 'ADODB.RECORDSET' );
+		this.conn = conn;
+		this.resetSQL();
+		this.table(table);
+		this.status = true;
+		this.pages = {};
+	});
+	
+	page.add('size', function( i ){
+		this.pages.size = i;
+		return this;
+	});
+	
+	page.add('index', function( i ){
+		this.pages.index = i;
+		return this;
+	});
+	
+	page.add('parse', function(options){
+		var that = this;
+		
+		var wheres = function(options, self){
+			if ( options.where && options.where.length > 0 ){
+				options.where.forEach(function(o){
+					var type = o[0],
+						args = o.slice(1);
+					
+					self[type] && self[type].apply(self, args);
+				});
+			};
+		};
+		
+		var orders = function(options, i, self){
+			options.order.forEach(function(o){
+				var type = o[0],
+					id = o[1];
+					
+				if ( i === 0 ){
+					type = type;
+				}else{
+					if ( type === 'asc' ){
+						type = 'desc';
+					}else{
+						type = 'asc';
+					}
+				}
+				
+				self[type] && self[type](id);
+			});
+		}
+		
+		this.select('count(*)');
+		wheres(options, that);
+		this.gruntSQL();
+		var total = this.conn.Execute(this.sql.text)(0).value;
+		
+		if ( total === 0 ){
+			this.status = false;
+			return this;
+		}
+		
+		this.pages.total = total;
+		this.pages.pageCount = Math.ceil(this.pages.total / this.pages.size);
+		
+		if ( this.pages.index > this.pages.pageCount ){
+			this.pages.index = this.pages.pageCount;
+		}
+		
+		this.resetSQL(); // 重置SQL语句
+console.log(total, '<br />')
+		wheres(options, that);
+
+		if ( this.pages.index === 1 ){
+			orders(options, 0, this);
+			this.top(this.pages.size).select.apply(this, options.selectors).gruntSQL();	
+		}
+		
+		else if ( this.pages.index === this.pages.pageCount ){			
+			orders(options, 0, this);
+			this.top(that.pages.size).selectAll().table(function(table){
+				wheres(options, this);
+				orders(options, 1, this);
+				this.top( that.pages.total - that.pages.size * (that.pages.index - 1) ).select.apply(this, options.selectors).table(table);
+			}).as('A').gruntSQL();
+		}
+		
+		else if ( this.pages.index < (this.pages.pageCount / 2 + this.pages.pageCount % 2) ){
+			orders(options, 0, this);
+			this.selectAll().table(function(table){
+				orders(options, 1, this);
+				this.top(that.pages.size).table(function(){
+					wheres(options, this);
+					orders(options, 0, this);
+					this.top(that.pages.size * that.pages.index).select.apply(this, options.selectors).table(table)
+				}).as('A').selectAll();
+			}).as('B').gruntSQL();
+		}
+		else {
+			orders(options, 0, this);
+			this.top(that.pages.size).selectAll().table(function(table){
+				wheres(options, this);
+				orders(options, 1, this);
+				this.top( (that.pages.total % that.pages.size) + that.pages.size * (that.pages.pageCount - that.pages.index + 1) ).select.apply(this, options.selectors).table(table);
+			}).as('A').gruntSQL();
+		}
+		
+		console.log(this.sql.text);
+	});
+	
+	page.extend(sql);
+	
+	function unique(arr){
+		var obj = {};
+		var ret = [];
+	
+		for ( var i = 0, len = arr.length; i < len; i++ ) {
+			var item = arr[i];
+			if ( obj[item] !== 1 ){
+			  obj[item] = 1;
+			  ret.push(item);
+			}
+		}
+	
+		return ret;
+	};
 	
 	function proxy( fn, context ) {
 		return function(){
