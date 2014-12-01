@@ -331,10 +331,10 @@ if ( connects ){
 	
 	var p = new page('blog_categorys', connects);
 	
-	p.size(1).index(9).parse({
+	p.size(1).index(3).parse({
 		where: [
-			/*['and', 'cate_outlink', 0],
-			['and', 'cate_order', 1, '>']*/
+			['and', 'cate_outlink', 0],
+			['and', 'cate_order', 1, '>']
 		],
 		order: [
 			['asc', 'id']

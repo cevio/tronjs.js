@@ -1708,7 +1708,7 @@ console.debug = function( logs ){
 		}
 		
 		this.resetSQL(); // 重置SQL语句
-console.log(total, '<br />')
+		
 		wheres(options, that);
 
 		if ( this.pages.index === 1 ){
@@ -1744,8 +1744,56 @@ console.log(total, '<br />')
 				this.top( (that.pages.total % that.pages.size) + that.pages.size * (that.pages.pageCount - that.pages.index + 1) ).select.apply(this, options.selectors).table(table);
 			}).as('A').gruntSQL();
 		}
+	});
+
+	page.add('open', function( mode ){
+		this.object.Open(this.sql.text, this.conn, 1, mode ? mode : 1);
+		return this;
+	});
+	
+	page.add('exec', function(resolve, reject){
+		if ( !this.object.Bof && !this.object.Eof ){
+			typeof resolve === 'function' && resolve.call(this, this.object);
+		}else{
+			typeof reject === 'function' && reject.call(this, this.object);
+		}
 		
-		console.log(this.sql.text);
+		return this;
+	});
+	
+	page.add('each', function( callback ){
+		return this.exec(function(object){
+			var i = 0;
+			object.MoveFirst();
+		
+			while ( !object.Eof )
+			{
+				typeof callback === "function" && callback.call(this, object, i);
+				object.MoveNext();
+				i++;
+			}
+		});
+	});
+	
+	page.add('toJSON', function(){
+		var keep = [];
+		this.open().each(function(object){
+			var json = {};
+			for ( var i = 0; i < object.fields.count ; i++ ) {
+				json[object.fields(i).name] = object.fields(i).value;
+			}
+			keep.push(json);
+		}).close();
+		
+		return keep;
+	});
+	
+	page.add('close', function(){
+		try{
+			this.object.Close();
+		}catch(e){}
+		
+		return this;
 	});
 	
 	page.extend(sql);
