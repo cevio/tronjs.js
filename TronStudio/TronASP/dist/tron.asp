@@ -94,6 +94,38 @@ console.json = function(){
 
 console.debug = function( logs ){
 	if ( modules.debug ){
+		if (typeof logs === 'string') {
+			logs = logs;
+		} 
+		else if (typeof logs === 'object') {
+			try{
+				logs = JSON.stringify(http.emit(logs));
+			}catch(e){
+				try{
+					logs = valueOf(logs);
+				}catch(e){
+					try{
+						logs = JSON.stringify(logs);
+					}catch(e){
+						logs = typeof(logs);
+					}
+				}
+			}
+		} 
+		else if ( typeof logs === 'date' ){
+			logs = date.format(logs, 'y-m-d h:i:s');
+		}
+		else if (typeof logs === 'function') {
+			logs = logs.toString();
+		} 
+		else {
+			try{
+				logs = String(logs);
+			}catch(e){
+				logs = typeof(logs);
+			}
+		};
+		
 		var now = date.format(new Date(), 'y-m-d h:i:s'),
 			content = '[' + now + ']:\r\n' + logs + '\r\n\r\n';
 		fs(contrast('/debug.log')).write(content);
