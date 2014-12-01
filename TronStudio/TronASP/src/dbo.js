@@ -188,8 +188,12 @@
 			return [];
 		}
 	});
-	
-	var sql = new Class();
+
+/*
+ *	SQL 语句生成类
+ *	evio
+ */	
+	sql = new Class();
 	
 	sql.add('resetSQL', function(){
 		var table = '';
@@ -197,7 +201,8 @@
 			table = this.sql.table;
 		}
 		this.sql = {};
-		this.sql.where = '';
+		this.sql.where = [];
+		this.sql.whereText = '';
 		if ( table && table.length > 0 && table.toLowerCase() !== 'undefined' ){
 			this.table(table);
 		};
@@ -227,7 +232,7 @@
 	});
 	
 	sql.add('where', function( str ){
-		this.sql.where = str;
+		this.sql.whereText = str;
 		return this;
 	});
 	
@@ -236,22 +241,29 @@
 		return this;
 	});
 	
+	sql.add('as', function(name){
+		this.sql.as = name;
+		return this;
+	});
+	
 	sql.add('and', function(key, value, compare){
-		if ( this.sql.where.length === 0 ){
-			this.sql.where += GruntKeyValue(key, value, compare);
-		}else{
-			this.sql.where += ' AND ' + GruntKeyValue(key, value, compare);
-		}
+		this.sql.where.push({
+			key: key,
+			value: value,
+			compare: compare,
+			toggle: 'AND'
+		});
 		
 		return this;
 	});
 	
 	sql.add('or', function( key, value, compare ){
-		if ( this.sql.where.length === 0 ){
-			this.sql.where += GruntKeyValue(key, value, compare);
-		}else{
-			this.sql.where += ' OR ' + GruntKeyValue(key, value, compare);
-		}
+		this.sql.where.push({
+			key: key,
+			value: value,
+			compare: compare,
+			toggle: 'OR'
+		});
 		
 		return this;
 	});
@@ -269,11 +281,12 @@
 		
 		sqls.gruntSQL();
 		
-		if ( this.sql.where.length === 0 ){
-			this.sql.where += '(' + sqls.sql.text + ')';
-		}else{
-			this.sql.where += ' AND (' + sqls.sql.text + ')';
-		}
+		var sqlText = sqls.sql.text;
+		
+		this.sql.where.push({
+			text: '(' + sqlText + ')',
+			toggle: 'AND'
+		});
 		
 		return this;
 	});
@@ -291,11 +304,12 @@
 		
 		sqls.gruntSQL();
 		
-		if ( this.sql.where.length === 0 ){
-			this.sql.where += '(' + sqls.sql.text + ')';
-		}else{
-			this.sql.where += ' OR (' + sqls.sql.text + ')';
-		}
+		var sqlText = sqls.sql.text;
+		
+		this.sql.where.push({
+			text: '(' + sqlText + ')',
+			toggle: 'OR'
+		});
 		
 		return this;
 	});
@@ -304,7 +318,12 @@
 		if ( !this.sql.order || this.sql.order.length === 0 ){
 			this.sql.order = [];
 		};
-		this.sql.order.push(params + ' ASC');
+		
+		this.sql.order.push({
+			param: params,
+			type: 'ASC'
+		});
+		
 		return this;
 	});
 	
@@ -312,56 +331,109 @@
 		if ( !this.sql.order || this.sql.order.length === 0 ){
 			this.sql.order = [];
 		};
-		this.sql.order.push(params + ' DESC');
+		
+		this.sql.order.push({
+			param: params,
+			type: 'DESC'
+		});
+		
 		return this;
+	});
+	
+	sql.add('toggleParams', function(params, type){
+		var _ = [], that = this;
+		params.forEach(function(o){
+			if ( type === 'selector' ){
+				if ( o === '*' ){
+					_.push(o);
+				}else{
+					if ( that.sql.as && that.sql.as.length > 0 ){
+						_.push(that.sql.as + '.[' + o + ']');
+					}else{
+						_.push('[' + o + ']');
+					}
+				}
+			}
+		});
+		return _;
+	});
+
+	sql.add('toggleWhere', function(){
+		var keepWhere = [];
+		this.sql.where.forEach(function(o){
+			if ( o.text && o.text.length > 0 ){
+				keepWhere.push(o.toggle + ' ' + o.text);
+			}else{
+				var p = this.GruntKeyValue(o.key, o.value, o.compare);
+				keepWhere.push(o.toggle + ' ' + p);
+			}
+		});
+		this.sql.whereText = keepWhere.join(' ');
 	});
 	
 	sql.add('gruntSQL', function(){
-		var datSQL = [];
+		var toggleSQLText = [], that = this;
+		
 		if ( this.sql.table && this.sql.table.length > 0 && this.sql.selectors && this.sql.selectors.length > 0 ){
-			datSQL.push('SELECT');
-			if ( this.sql.top && this.sql.top > 0 ){
-				datSQL.push('TOP ' + this.sql.top);
-			};
-			if ( this.sql.selectors && this.sql.selectors.length > 0 ){
-				datSQL.push(this.sql.selectors.join(','));
-			};
-			datSQL.push('FROM ' + this.sql.table);
+			toggleSQLText.push('SELECT');
 			
-			if ( this.sql.where.length > 0 ){
-				datSQL.push('WHERE');
-				datSQL.push(this.sql.where);
+			// 设定TOP参数
+			if ( this.sql.top && this.sql.top > 0 ){
+				toggleSQLText.push('TOP ' + this.sql.top);
+			};
+			
+			// 设定选择范围
+			if ( this.sql.selectors && this.sql.selectors.length > 0 ){
+				toggleSQLText.push(this.toggleParams(this.sql.selectors, 'selector').join(','));
+			};
+			
+			// 设定表名
+			toggleSQLText.push('FROM [' + this.sql.table + ']');
+			
+			// 设定条件
+			if ( this.sql.where.length > 0 && this.sql.whereText && this.sql.whereText.length === 0 ){
+				toggleSQLText.push('WHERE');
+				this.toggleWhere();
+				toggleSQLText.push(this.sql.whereText);
+			}else{
+				if ( this.sql.whereText.length > 0 ){
+					toggleSQLText.push('WHERE');
+					toggleSQLText.push(this.sql.whereText);
+				}
 			}
+			
+			// 设定排序
 			if ( this.sql.order && this.sql.order.length > 0 ){
-				datSQL.push('ORDER BY')
-				datSQL.push(this.sql.order.join(','));
+				datSQL.push('ORDER BY');
+				var ods = [];
+				this.sql.order.forEach(function(o){
+					if ( that.sql.as && that.sql.as.length > 0 ){
+						ods.push(that.sql.as + '.[' + o.param + '] ' + o.type);
+					}else{
+						ods.push('[' + o.param + '] ' + o.type);
+					}
+				});
+				toggleSQLText.push(ods.join(','));
 			};
 		}else{
-			datSQL.push(this.sql.where);
+			if ( this.sql.where.length > 0 && this.sql.whereText && this.sql.whereText.length === 0 ){
+				this.toggleWhere();
+				toggleSQLText.push(this.sql.whereText);
+			}else{
+				if ( this.sql.whereText.length > 0 ){
+					toggleSQLText.push(this.sql.whereText);
+				}
+			}
 		}
 	
-		this.sql.text = datSQL.join(' ');
+		this.sql.text = toggleSQLText.join(' ');
 		return this;
 	});
 	
-	function unique(arr){
-		var obj = {};
-		var ret = [];
-	
-		for ( var i = 0, len = arr.length; i < len; i++ ) {
-			var item = arr[i];
-			if ( obj[item] !== 1 ){
-			  obj[item] = 1;
-			  ret.push(item);
-			}
-		}
-	
-		return ret;
-	};
-	
-	function GruntKeyValue(key, value, compare){
+	sql.add('GruntKeyValue', function(key, value, compare){
 		if ( !compare ){ compare = '='; }
 		compare = compare.toLowerCase();
+		var ret = '';
 		if ( compare === 'in' ){
 			if ( !readVariableType(value, 'array') ){
 				value = [value];
@@ -378,7 +450,12 @@
 					inArray.push(value[i]);
 				}
 			};
-			return key + ' IN ' + '(' + inArray.join(',') + ')';
+
+			if ( this.sql.as && this.sql.as.length > 0 ){
+				ret = this.sql.as + '.[' + key + ']' + ' IN ' + '(' + inArray.join(',') + ')';
+			}else{
+				ret = '[' + key + '] IN ' + '(' + inArray.join(',') + ')';
+			}
 		}
 		else{
 			if ( readVariableType(value, 'string') ){
@@ -388,9 +465,30 @@
 				value = "'" + date.format(value, 'y/m/d h:i:s') + "'";
 			}
 			
-			return key + compare + value;
+			if ( this.sql.as && this.sql.as.length > 0 ){
+				ret = this.sql.as + '.[' + key + ']' + compare + value;
+			}else{
+				ret = '[' + key + ']' + compare + value;
+			}
 		}
-	}
+		
+		return ret;
+	});
+	
+	function unique(arr){
+		var obj = {};
+		var ret = [];
+	
+		for ( var i = 0, len = arr.length; i < len; i++ ) {
+			var item = arr[i];
+			if ( obj[item] !== 1 ){
+			  obj[item] = 1;
+			  ret.push(item);
+			}
+		}
+	
+		return ret;
+	};
 	
 	function proxy( fn, context ) {
 		return function(){

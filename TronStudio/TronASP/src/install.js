@@ -7,7 +7,19 @@
 	resolve,						// 模块转换路径模块的具体方法
 	include;						// 模板加载方法
 
-var Class, console, modules, task, fs, date, http, ajax, connect, dbo;
+var Class, 							// 系统Class类定义
+	console, 						// 系统调试输出类定义
+	modules, 						// 系统模块类定义
+	task, 							// 系统任务类定义
+	fs, 							// 系统文件操作类定义
+	date, 							// 系统日期类定义
+	http, 							// 系统环境变量类定义
+	ajax, 							// 系统请求类定义
+	connect, 						// 系统数据库连接类定义
+	dbo, 							// 系统数据库操作类定义
+	sql, 							// 系统SQL语句生成类定义
+	page, 							// 系统分类类定义
+	cmd;							// 系统存储过程调用类定义
 	
 var JSON = function(){
 	return JSON.stringify.apply(JSON, arguments);
