@@ -1,10 +1,10 @@
-/*var configs = {
+var configs = {
 	netserver: '192.168.1.11',
 	access: 'Test',
 	username: 'sa',
 	password: 'viewalloc'
-};*/
-var configs = {"netserver":".","access":"blog","username":"evio","password":"1094872"};
+};
+/*var configs = {"netserver":".","access":"blog","username":"evio","password":"1094872"};*/
 
 function randoms(l){
 	var x = "123456789poiuytrewqasdfghjklmnbvcxzQWERTYUIPLKJHGFDSAZXCVBNM";
@@ -56,7 +56,7 @@ adParamInputOutput 3 允许数据输入、输出至该参数当中
 adparamReturnValue 4 允许从一子程序中返回数据至该参数当中
 */
 
-var cmd = new Class(function(Command, conn){
+/*var cmd = new Class(function(Command, conn){
 	this.cmd = new ActiveXObject('Adodb.Command');
 	this.cmd.ActiveConnection = conn;
 	this.cmd.CommandType = adCmdSPStoredProc;
@@ -108,7 +108,7 @@ cmd.add('get', function(key){
 
 cmd.add('destory', function(){
 	this.cmd = null;
-});
+});*/
 
 //table, alters, param, orderby, _orderby, pagesize, pageindex, callback , up
 // 表	   字段    条件	 正排序     反排序		每页数		当前页
@@ -329,7 +329,7 @@ if ( connects ){
 		.gruntSQL();
 	console.log(_.sql.text)*/
 	
-	var p = new page('blog_categorys', connects);
+/*	var p = new page('blog_categorys', connects);
 	
 	p.size(1).index(3).parse({
 		where: [
@@ -340,8 +340,25 @@ if ( connects ){
 			['asc', 'id']
 		],
 		selectors: ['id', 'cate_name', 'cate_des', 'cate_count', 'cate_parent', 'cate_src', 'cate_outlink', 'cate_isroot', 'cate_order', 'cate_icon']
-	});
-
+	});*/
+	
+	var c = new cmd('P_viewPage', connects);
+	var z = c
+			.addInputVarchar('@TableName', 'evio')
+			.addInputVarchar('@FieldList', '*')
+			.addInputVarchar('@PrimaryKey', 'id')
+			.addInputVarchar('@Where', 'id>10')
+			.addInputVarchar('@Order', 'id asc')
+			.addInputInt('@SortType', 1)
+			.addInputInt('@RecorderCount', 0)
+			.addInputInt('@PageSize', 10)
+			.addInputInt('@PageIndex', 2)
+			.addOutputInt('@TotalCount')
+			.addOutputInt('@TotalPageCount')
+			.exec().toJSON();
+			
+	console.log(c.get('@TotalCount'))
+	console.json(z);
 }else{
 	exports.error = 404;
 }

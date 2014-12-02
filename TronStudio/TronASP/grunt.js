@@ -12,6 +12,7 @@ var files = [
 	'src/require.js',
 	'src/http.js',
 	'src/dbo.js',
+	'src/cmd.js',
 	'src/json2.js',
 	'src/footer.asp'
 ];
