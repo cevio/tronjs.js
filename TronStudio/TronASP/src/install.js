@@ -18,7 +18,7 @@ var Class, 							// 系统Class类定义
 	connect, 						// 系统数据库连接类定义
 	dbo, 							// 系统数据库操作类定义
 	sql, 							// 系统SQL语句生成类定义
-	page, 							// 系统分类类定义
+	page, 							// 系统双TOP高效分页类定义
 	cmd;							// 系统存储过程调用类定义
 	
 var JSON = function(){
@@ -81,30 +81,41 @@ console.json = function(){
 
 console.debug = function( logs ){
 	if ( modules.debug ){
-		if (typeof logs === 'string') {
+		if ( 
+			typeof logs === 'string' || 
+			readVariableType(logs, 'boolean') || 
+			readVariableType(logs, 'number')) 
+		{
 			logs = logs;
-		} 
+		}
+		else if ( readVariableType(logs, 'date') ){
+			logs = date.format(logs, 'y-m-d h:i:s');
+		}
+		else if ( typeof logs === 'function' ) {
+			logs = logs.toString();
+		}
 		else if (typeof logs === 'object') {
-			try{
+			if ( logs.atEnd ){
 				logs = JSON.stringify(http.emit(logs));
-			}catch(e){
+			}
+			else{
 				try{
-					logs = valueOf(logs);
+					var o = 0;
+					for ( var i in logs ){
+						o++;
+					}
+					if ( o >= 0 ){
+						logs = JSON.stringify(logs);
+					}
 				}catch(e){
 					try{
-						logs = JSON.stringify(logs);
-					}catch(e){
+						logs = valueOf(logs) ? valueOf(logs) : typeof(logs);
+					}catch(ex){
 						logs = typeof(logs);
 					}
 				}
 			}
-		} 
-		else if ( typeof logs === 'date' ){
-			logs = date.format(logs, 'y-m-d h:i:s');
 		}
-		else if (typeof logs === 'function') {
-			logs = logs.toString();
-		} 
 		else {
 			try{
 				logs = String(logs);
@@ -117,4 +128,4 @@ console.debug = function( logs ){
 			content = '[' + now + ']:\r\n' + logs + '\r\n\r\n';
 		fs(contrast('/debug.log')).write(content);
 	}
-}
+};
