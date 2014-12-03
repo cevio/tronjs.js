@@ -1223,7 +1223,7 @@ console.debug = function( logs ){
 		this.object = new ActiveXObject( AR );		// RECORDSET对象
 		this.fields = [];							// 字段名集合
 		this.length = 0;							// 字段名个数
-		
+		this.status = false;
 		this.resetSQL();							// 初始化SQL
 		this.table(table);
 	});
@@ -1239,8 +1239,10 @@ console.debug = function( logs ){
 	});
 	
 	dbo.add('create', function(){
-		this.selectAll();
-		this.open(2);
+		if ( !this.status ){
+			this.selectAll();
+			this.open(2);
+		};
 		this.object.AddNew();
 		return this;
 	});
@@ -1273,8 +1275,10 @@ console.debug = function( logs ){
 	});
 	
 	dbo.add('open', function(mode){
+		if ( this.status ){ return this; };
 		this.gruntSQL();
 		this.object.Open(this.sql.text, this.conn, 1, mode ? mode : 1);
+		this.status = true;
 		return this;
 	});
 	
@@ -1294,6 +1298,7 @@ console.debug = function( logs ){
 	dbo.add('close', function(){
 		try{
 			this.object.Close();
+			this.status = false;
 		}catch(e){}
 		
 		return this;
