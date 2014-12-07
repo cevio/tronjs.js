@@ -833,7 +833,7 @@ console.debug = function( logs ){
 			'return function (require, exports, module, include, __filename, __dirname, contrast, resolve){', 
 			this.ServerScriptContent, 
 			'};'
-		].join(" ");
+		].join("\n");
 		
 		return (new Function(wrapper))();
 	});
