@@ -730,7 +730,7 @@ console.debug = function( logs ){
 	var RequireModule = function(){
 		this.__filename = null;
 		this.__dirname = null;
-		this.exports = function(){};
+		this.exports = {};
 	};
 	
 	var proxy = function( fn, context ) {
@@ -815,7 +815,7 @@ console.debug = function( logs ){
 		var that = this;
 		fs(this.AbsoluteModulePath).exist().read().then(function(ServerScriptContent){
 			if ( /\.json/i.test(that.AbsoluteModulePath) ){
-				that.ServerScriptContent = 'module.exports = ' + ServerScriptContent + ';';
+				that.ServerScriptContent = 'module.exports = ' + (ServerScriptContent && ServerScriptContent.length > 2 ? ServerScriptContent : '{}') + ';';
 			}
 			else if (/\.asp/i.test(that.AbsoluteModulePath)){
 				that.ServerScriptContent = syntax(that.ServerScriptContent);
