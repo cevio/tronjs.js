@@ -914,6 +914,13 @@ console.debug = function( logs ){
 		};
 		
 		var _require = function(selector){
+			if ( modules.maps[selector] && modules.maps[selector].length > 0 ){
+				selector = modules.maps[selector];
+			}else{
+				selector = fs(modules.base + '\\tron_modules\\' + selector.replace(/\//g, '\\') + '\\index.js').exist().then(function(value){
+					modules.maps[selector] = value;
+				}).fail(function(value){ return selector }).value();
+			}
 			return new Require(_resolve(selector));
 		};
 		
