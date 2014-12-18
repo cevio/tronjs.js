@@ -135,10 +135,10 @@
 	Require.add('read', function(){
 		var that = this;
 		fs(this.AbsoluteModulePath).exist().read().then(function(ServerScriptContent){
-			if ( /\.json/i.test(that.AbsoluteModulePath) ){
-				that.ServerScriptContent = 'module.exports = ' + (ServerScriptContent && ServerScriptContent.length > 2 ? ServerScriptContent : '{}') + ';';
+			if ( /\.json$/i.test(that.AbsoluteModulePath) ){
+				that.ServerScriptContent = 'module.exports = ' + (ServerScriptContent && ServerScriptContent.length > 0 ? ServerScriptContent : '{}') + ';';
 			}
-			else if (/\.asp/i.test(that.AbsoluteModulePath)){
+			else if (/\.asp$/i.test(that.AbsoluteModulePath)){
 				that.ServerScriptContent = syntax(that.ServerScriptContent);
 			}
 			else{
