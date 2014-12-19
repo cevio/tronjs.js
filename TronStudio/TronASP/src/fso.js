@@ -34,7 +34,7 @@
 	fso.add('create', function( content ){
 		return this.then(function(){	
 			if ( this.contexts.type ){
-				object.CreateFolder(this.contexts.path);
+				if ( !object.FolderExists(this.contexts.path) ) { object.CreateFolder(this.contexts.path); };
 				if ( object.FolderExists(this.contexts.path) ){
 					this.resolve();
 				}else{
