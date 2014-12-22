@@ -184,9 +184,9 @@
 	fso.add('move', function(targetAbsolutePath){
 		return this.then(function(){
 			if ( !this.contexts.type ){
-				object.MoveFile(this.context.path, targetAbsolutePath);
+				object.MoveFile(this.contexts.path, targetAbsolutePath);
 			}else{
-				object.MoveFolder(this.context.path, targetAbsolutePath);
+				object.MoveFolder(this.contexts.path, targetAbsolutePath);
 			}
 			this.unExist().then(function(){
 				this.change(targetAbsolutePath).exist();
@@ -197,9 +197,9 @@
 	fso.add('copy', function(targetAbsolutePath){
 		return this.then(function(){
 			if ( !this.contexts.type ){
-				object.CopyFile(this.context.path, targetAbsolutePath);
+				object.CopyFile(this.contexts.path, targetAbsolutePath);
 			}else{
-				object.CopyFolder(this.context.path, targetAbsolutePath);
+				object.CopyFolder(this.contexts.path, targetAbsolutePath);
 			}
 			this.exist().then(function(){
 				this.change(targetAbsolutePath).exist();
@@ -210,9 +210,9 @@
 	fso.add('reName', function( name ){
 		return this.then(function(){
 			if ( !this.contexts.type ){
-				object.GetFile(this.context.path).Name = name;
+				object.GetFile(this.contexts.path).Name = name;
 			}else{
-				object.GetFolder(this.context.path).Name = name;
+				object.GetFolder(this.contexts.path).Name = name;
 			}
 			
 			var targetAbsolutePath = this.getDir().value() + '\\' + name;
