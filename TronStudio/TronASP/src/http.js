@@ -207,5 +207,5 @@
 	});
 	
 	http = new Http();
-	ajax = Ajax;
+	ajax = new Ajax();
 })();;
