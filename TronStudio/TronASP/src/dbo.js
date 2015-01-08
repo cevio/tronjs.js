@@ -405,7 +405,13 @@
 		this.sql.whereText = keepWhere.join(' ');
 	});
 	
-	sql.add('gruntSQL', function(){
+	sql.add('gruntSQL', function(sqls){
+		
+		if ( sqls ){
+			this.sql.text = sqls;
+			return this;
+		}
+		
 		var toggleSQLText = [], that = this;
 		
 		if ( this.sql.tableText && this.sql.tableText.length > 0 && this.sql.selectors && this.sql.selectors.length > 0 ){
