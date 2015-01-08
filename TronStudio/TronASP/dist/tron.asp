@@ -1290,6 +1290,14 @@ console.debug = function( logs ){
 		return this;
 	});
 	
+	dbo.add('openSQL', function(sqls, mode){
+		if ( this.status ){ return this; };
+		this.sql.text = sqls;
+		this.object.Open(this.sql.text, this.conn, 1, mode ? mode : 1);
+		this.status = true;
+		return this;
+	});
+	
 	dbo.add('toJSON', function(){
 		var keep = [];
 		this.open().each(function(object){
@@ -1574,12 +1582,7 @@ console.debug = function( logs ){
 		this.sql.whereText = keepWhere.join(' ');
 	});
 	
-	sql.add('gruntSQL', function(sqls){
-		
-		if ( sqls ){
-			this.sql.text = sqls;
-			return this;
-		}
+	sql.add('gruntSQL', function(){
 		
 		var toggleSQLText = [], that = this;
 		
