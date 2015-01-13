@@ -109,7 +109,7 @@ console.debug = function( logs ){
 		}
 		else if (typeof logs === 'object') {
 			if ( logs.atEnd ){
-				logs = JSON.stringify(http.emit(logs));
+				logs = JSON.format(http.emit(logs), true);
 			}
 			else{
 				try{
@@ -118,7 +118,7 @@ console.debug = function( logs ){
 						o++;
 					}
 					if ( o >= 0 ){
-						logs = JSON.stringify(logs);
+						logs = JSON.format(logs, true);
 					}
 				}catch(e){
 					try{
@@ -2389,5 +2389,86 @@ console.json(z);
             throw new SyntaxError('JSON.parse');
         };
     }
+	
+// If the JSON object does not yet have a format method, give it one.
+	if (typeof JSON.format !== 'function') {
+		function repeat(s, count) {
+			return new Array(count + 1).join(s);
+		}
+		
+		JSON.format = function(json, cr) {
+
+			json = this.stringify(json);
+			
+			var i           = 0,
+				il          = 0,
+				tab         = '\t',
+				output   	= '',
+				indentLevel = 0,
+				inString    = false,
+				currentChar = null;
+	
+			for (i = 0, il = json.length; i < il; i += 1) { 
+				currentChar = json.charAt(i);
+	
+				switch (currentChar) {
+				case '{': 
+				case '[': 
+					if (!inString) { 
+						output += currentChar + '\n' + repeat(tab, indentLevel + 1);
+						indentLevel += 1; 
+					} else { 
+						output += currentChar; 
+					}
+					break; 
+				case '}': 
+				case ']': 
+					if (!inString) { 
+						indentLevel -= 1; 
+						output += '\n' + repeat(tab, indentLevel) + currentChar; 
+					} else { 
+						output += currentChar; 
+					} 
+					break; 
+				case ',': 
+					if (!inString) { 
+						output += ',\n' + repeat(tab, indentLevel); 
+					} else { 
+						output += currentChar; 
+					} 
+					break; 
+				case ':': 
+					if (!inString) { 
+						output += ': '; 
+					} else { 
+						output += currentChar; 
+					} 
+					break; 
+				case ' ':
+				case '\n':
+				case '\t':
+					if (inString) {
+						output += currentChar;
+					}
+					break;
+				case '"': 
+					if (i > 0 && json.charAt(i - 1) !== '\\') {
+						inString = !inString; 
+					}
+					output += currentChar; 
+					break;
+				default: 
+					output += currentChar; 
+					break;                    
+				}
+			}
+	
+			if (cr) {
+				output = output.replace(/\n/g, '\r\n'); 
+			};
+			
+			return output;
+		}
+	}
 }());
 %>
