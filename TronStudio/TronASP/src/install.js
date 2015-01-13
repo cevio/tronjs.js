@@ -96,7 +96,7 @@ console.debug = function( logs ){
 		}
 		else if (typeof logs === 'object') {
 			if ( logs.atEnd ){
-				logs = JSON.stringify(http.emit(logs));
+				logs = JSON.format(http.emit(logs), true);
 			}
 			else{
 				try{
@@ -105,7 +105,7 @@ console.debug = function( logs ){
 						o++;
 					}
 					if ( o >= 0 ){
-						logs = JSON.stringify(logs);
+						logs = JSON.format(logs, true);
 					}
 				}catch(e){
 					try{
