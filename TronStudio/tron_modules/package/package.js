@@ -222,6 +222,59 @@
 		
 		return this.fso.FolderExists(fullpath);
 	});
+	
+	// 直接读取pbd文件内容
+	Packs.add('readpbd', function( pbd, file ){
+		file = file.replace(/\//ig, '\\');
+		
+		// 初始化对象
+		this.object.Type = 1; 
+		this.object.Mode = 3; 
+		this.object.Open();
+		this.object.Position = 0;
+		this.object.LoadFromFile(pbd);
+		this.binary = this.object.Read();
+		
+		// 开始读文件头
+		var headerInfo = this.getHeaderInfo(pbd),
+			headerSize = headerInfo.substr(0, 8),
+			headerText = headerInfo.substr(12);
+		// 最终结果
+		var content = '';	// 文件内容
+		// 获取文件列表
+		var arr = headerText.split('|'), position = 16 + Number(headerSize) + 1;
+		for ( var i = 1 ; i < arr.length - 1; i++ ){
+			if (arr[i].indexOf('>') > -1) {
+				var fileInfo = arr[i].split('>'),
+					fileName = fileInfo[0],
+					fileSize = Number(fileInfo[1]);
+				
+				if (fileName === file) {
+					if( fileSize === 0) {
+						return content;
+					}else{		
+						var obj = new ActiveXObject('Adodb.Stream');
+						obj.Type = 1;
+						obj.Open();
+						this.object.Position = position;
+						this.object.CopyTo(obj, fileSize);
+						obj.Position = 0;
+						obj.Type = 2;
+						obj.Charset = 'utf-8';
+						content = obj.ReadText();
+						obj.Close();
+						obj = null;
+	
+						return content;				
+					}
+				}
+				
+				position += fileSize;
+			}
+		}
+		
+		return '未找到目标文件';
+	});
 		
 	return Packs;
 });
